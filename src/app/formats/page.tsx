@@ -11,7 +11,7 @@ export default function FormatsPage() {
   return (
     <PageShell title="Supported formats" intro="FileForge converts one file at a time, in your browser. Only the conversions below are supported; anything else is rejected rather than faked.">
       <section aria-label="Compatibility matrix" className="card overflow-hidden">
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto" role="region" aria-label="Compatibility table, scrollable" tabIndex={0}>
           <table className="w-full min-w-[34rem] text-left text-sm" data-testid="format-matrix">
             <caption className="sr-only">Which input formats convert to which outputs</caption>
             <thead className="bg-surface-2 text-xs text-muted">

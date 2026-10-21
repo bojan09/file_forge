@@ -25,11 +25,12 @@ interface Ctx {
   mediaCounts: Map<string, number>;
   controls: number;
   nestedTables: number;
-  droppedLinks: number;
   depth: number;
+  tooDeep: boolean;
 }
 
-const MAX_DEPTH = 60;
+// Browsers cap HTML nesting at 512; allow a margin and report (never silently drop) anything deeper.
+const MAX_DEPTH = 700;
 
 function isElement(n: Node): n is Element {
   return n.nodeType === 1;
@@ -37,7 +38,10 @@ function isElement(n: Node): n is Element {
 
 /** Collects inline runs from a node subtree. Block children inside inline context are flattened with line breaks. */
 function collectInline(node: Node, fmt: Fmt, out: Inline[], ctx: Ctx, pre: boolean) {
-  if (ctx.depth > MAX_DEPTH) return;
+  if (ctx.depth > MAX_DEPTH) {
+    ctx.tooDeep = true;
+    return;
+  }
   ctx.depth++;
   try {
     for (const child of Array.from(node.childNodes)) {
@@ -70,7 +74,6 @@ function collectInline(node: Node, fmt: Fmt, out: Inline[], ctx: Ctx, pre: boole
         }
         case "a": {
           const href = safeLink(child.getAttribute("href"));
-          if (!href && child.getAttribute("href")) ctx.droppedLinks++;
           collectInline(child, { ...fmt, link: href ?? fmt.link }, out, ctx, pre);
           break;
         }
@@ -217,7 +220,10 @@ function parseChildren(parent: Node, ctx: Ctx, warnings: ConversionWarning[]): B
     const runs = tidy(out);
     if (runs.length) blocks.push({ type: "paragraph", runs });
   };
-  if (ctx.depth > MAX_DEPTH) return blocks;
+  if (ctx.depth > MAX_DEPTH) {
+    ctx.tooDeep = true;
+    return blocks;
+  }
   ctx.depth++;
   try {
     for (const child of Array.from(parent.childNodes)) {
@@ -326,7 +332,7 @@ export function parseHtml(source: string, processing: Processing) {
     FORBID_ATTR: ["style", "srcset", "onerror", "onload"],
   }) as unknown as HTMLElement;
 
-  const ctx: Ctx = { images: 0, mediaCounts: new Map(), controls: 0, nestedTables: 0, droppedLinks: 0, depth: 0 };
+  const ctx: Ctx = { images: 0, mediaCounts: new Map(), controls: 0, nestedTables: 0, depth: 0, tooDeep: false };
   const blocks = parseChildren(clean, ctx, warnings);
 
   // Media elements were forbidden/removed by the sanitizer; count them from the inert document for the report.
@@ -341,7 +347,13 @@ export function parseHtml(source: string, processing: Processing) {
   }
   if (ctx.controls) warnings.push(warn("controls-skipped", `${plural(ctx.controls, "form control")} left out.`, "info"));
   if (ctx.nestedTables) warnings.push(warn("nested-tables", `${plural(ctx.nestedTables, "nested table")} flattened to text.`));
-  if (ctx.droppedLinks) warnings.push(warn("links-dropped", `${plural(ctx.droppedLinks, "link")} with relative or unsafe addresses kept as plain text.`, "info"));
+  let droppedLinks = 0;
+  inert.querySelectorAll("a[href]").forEach((a) => {
+    const href = (a.getAttribute("href") ?? "").trim();
+    if (href && !href.startsWith("#") && !safeLink(href)) droppedLinks++;
+  });
+  if (droppedLinks) warnings.push(warn("links-dropped", `${plural(droppedLinks, "link")} with relative or unsafe addresses kept as plain text.`, "info"));
+  if (ctx.tooDeep) warnings.push(warn("nesting-truncated", "Some extremely deeply nested content was left out."));
   warnings.unshift(warn("approximate", "HTML conversion is approximate. Complex layouts are flattened into reading order.", "info"));
 
   const doc = finalizeDoc(blocks, warnings, title);

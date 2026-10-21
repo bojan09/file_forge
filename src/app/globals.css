@@ -99,6 +99,7 @@
 :root[data-theme="light"][data-accent="violet"] { --accent-text: #6d28d9; }
 :root[data-theme="light"][data-accent] { --accent: var(--btn-from); }
 
+@layer base {
 html {
   background: var(--bg);
   -webkit-text-size-adjust: 100%;
@@ -132,6 +133,9 @@ body {
   border-radius: 0.6rem;
 }
 .skip-link:focus { top: 0.75rem; }
+}
+
+@layer components {
 
 /* ---------- Components ---------- */
 .card {
@@ -293,6 +297,8 @@ select.field {
   border: 2px solid var(--accent-2);
   animation: pulse-ring 1.3s ease-out infinite;
   pointer-events: none;
+}
+
 }
 
 /* ---------- Progress / motion ---------- */

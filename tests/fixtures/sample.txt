@@ -1,0 +1,8 @@
+FileForge sample
+
+This is the first paragraph of a plain text file.
+It has a hard line break inside the paragraph.
+
+Second paragraph with Unicode: café, naïve, Здраво свету, Македонија ќ ѓ љ њ, Ελληνικά.
+
+	Tabbed line that should be indented.

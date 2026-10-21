@@ -79,7 +79,9 @@ function blocksToContent(blocks: Block[], contentWidth: number): Content[] {
         const cols = Math.max(b.header?.length ?? 0, ...b.rows.map((r) => r.length), 1);
         const size = tableFontSize(cols);
         const pad = cols > 9 ? 2 : 4;
-        const widths = absoluteWidths(columnWeights(b), contentWidth, Math.min(34, contentWidth / cols));
+        // pdfmake adds cell padding and borders on top of column widths, so reserve room for them.
+        const available = contentWidth - cols * pad * 2 - (cols + 1) * 0.5;
+        const widths = absoluteWidths(columnWeights(b), available, Math.min(30, available / cols));
         const cell = (runs: Inline[], header: boolean, c: number) => ({
           text: runs.length ? runsToContent(runs) : "",
           bold: header,

@@ -28,7 +28,7 @@ export function HomeView({ onFile, error, notice }: { onFile: (file: File, extra
             Turn text, documents and images into high-quality PDF or editable Word files, all in your browser, for free.
           </p>
           {error && (
-            <div role="alert" className="flex gap-3 rounded-xl border border-danger/50 bg-danger/10 p-3.5 text-sm">
+            <div role="alert" data-testid="inspect-error" className="flex gap-3 rounded-xl border border-danger/50 bg-danger/10 p-3.5 text-sm">
               <AlertIcon size={20} className="mt-0.5 shrink-0 text-danger" />
               <div>
                 <p className="font-semibold">That file can&apos;t be converted</p>
