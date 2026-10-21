@@ -1,5 +1,6 @@
 export const NAV_ITEMS = [
   { href: "/", label: "Convert", short: "Home" },
+  { href: "/pdf-tools/", label: "PDF Tools", short: "PDF" },
   { href: "/formats/", label: "Formats", short: "Formats" },
   { href: "/settings/", label: "Settings", short: "Settings" },
   { href: "/help/", label: "Help", short: "Help" },

@@ -67,7 +67,7 @@ test.describe("automated checks across every screen and state", () => {
       await expect(page.getByTestId("merge-workspace")).toBeVisible();
       await axe(page, "merge workspace");
 
-      for (const url of ["/formats/", "/settings/", "/help/", "/privacy/", "/this-page-does-not-exist/"]) {
+      for (const url of ["/pdf-tools/", "/formats/", "/settings/", "/help/", "/privacy/", "/this-page-does-not-exist/"]) {
         await page.goto(url);
         await axe(page, url);
       }
@@ -209,7 +209,7 @@ test.describe("announcements and error association", () => {
 });
 
 test.describe("zoom, reflow and device settings", () => {
-  const pages = ["/", "/formats/", "/settings/", "/help/", "/privacy/"];
+  const pages = ["/", "/pdf-tools/", "/formats/", "/settings/", "/help/", "/privacy/"];
 
   for (const [label, width, height] of [["200% zoom", 720, 450], ["400% zoom / 320 px reflow", 320, 256]] as const) {
     test(`${label}: no horizontal scrolling and every control stays reachable`, async ({ page, isMobile }) => {

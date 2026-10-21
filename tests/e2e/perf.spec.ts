@@ -179,3 +179,41 @@ for (const throttle of [1, 4]) {
     }
   });
 }
+
+test("phase 6 PDF tools: time, main-thread blocking and heap on large inputs", async ({ page }) => {
+  test.setTimeout(600_000);
+  await page.addInitScript(() => {
+    const w = window as unknown as { __long: number[] };
+    w.__long = [];
+    new PerformanceObserver((l) => l.getEntries().forEach((e) => w.__long.push(e.duration))).observe({ type: "longtask" });
+  });
+  await page.goto("/pdf-tools/");
+  const long = { name: "pdf-long.pdf", mimeType: "application/pdf", buffer: readFileSync(corpusPath("pdf-long.pdf")) };
+  const files = [long, { ...long, name: "b.pdf" }, { ...long, name: "c.pdf" }];
+  const t0 = Date.now();
+  await page.getByTestId("file-input").setInputFiles(files);
+  await expect(page.locator('[data-testid="pdf-file-row"]:has-text("pages")')).toHaveCount(3, { timeout: 120_000 });
+  const addMs = Date.now() - t0;
+  const t1 = Date.now();
+  await page.getByTestId("run-tool").click();
+  await expect(page.getByTestId("tool-result")).toBeVisible({ timeout: 300_000 });
+  const mergeMs = Date.now() - t1;
+  const long1 = await page.evaluate(() => (window as unknown as { __long: number[] }).__long);
+  const heap = await page.evaluate(() => Math.round(((performance as unknown as { memory?: { usedJSHeapSize: number } }).memory?.usedJSHeapSize ?? 0) / 1048576));
+  console.log(`P6PERF merge 3x120 pages: inspect ${addMs} ms, merge ${mergeMs} ms, long tasks ${long1.length} (longest ${Math.round(Math.max(0, ...long1))} ms), JS heap ${heap} MB, result ${await page.getByTestId("result-file").innerText().then((t) => t.replace(/\s+/g, " "))}`);
+
+  await page.getByTestId("tool-split").click();
+  await page.getByTestId("pdf-clear").click();
+  await page.getByTestId("file-input").setInputFiles(long);
+  await expect(page.locator('[data-testid="pdf-file-row"]:has-text("pages")')).toHaveCount(1, { timeout: 60_000 });
+  await page.getByTestId("split-mode-each").click();
+  const t2 = Date.now();
+  await page.getByTestId("run-tool").click();
+  await expect(page.getByTestId("result-file")).toHaveCount(120, { timeout: 300_000 });
+  console.log(`P6PERF split 120 pages into 120 files: ${Date.now() - t2} ms`);
+  await page.getByTestId("tool-organize").click();
+  const t3 = Date.now();
+  await expect(page.getByTestId("page-card")).toHaveCount(120);
+  await expect(page.getByTestId("page-card").first().locator("canvas")).toBeVisible({ timeout: 60_000 });
+  console.log(`P6PERF organize 120-page grid, first thumbnail visible in ${Date.now() - t3} ms`);
+});

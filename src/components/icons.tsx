@@ -237,3 +237,22 @@ export const FitPageIcon = (p: P) => (
     <path d="M9.5 9h5M9.5 12h5M9.5 15h3" />
   </Svg>
 );
+export const RotateCwIcon = (p: P) => (
+  <Svg {...p}>
+    <path d="M20 5v5h-5" />
+    <path d="M19.5 10A8 8 0 1 0 20 14" />
+  </Svg>
+);
+export const RotateCcwIcon = (p: P) => (
+  <Svg {...p}>
+    <path d="M4 5v5h5" />
+    <path d="M4.5 10A8 8 0 1 1 4 14" />
+  </Svg>
+);
+export const ScissorsIcon = (p: P) => (
+  <Svg {...p}>
+    <circle cx="6" cy="6" r="2.5" />
+    <circle cx="6" cy="18" r="2.5" />
+    <path d="M8 7.5 20 18M8 16.5 20 6" />
+  </Svg>
+);

@@ -18,6 +18,8 @@ const FAQ: { q: string; a: string }[] = [
   { q: "Does it work offline?", a: "Yes, after the first visit has finished storing the app (Settings shows when it is ready). Conversions, previews, fonts and every page work without a connection. If Data Saver is on, the offline copy is skipped. Install it from your browser's install button, or Share then Add to Home Screen on iPhone and iPad." },
   { q: "A banner says a new version is ready", a: "Updates never start by themselves. The button is disabled while a conversion runs. Updating reloads the page, which clears the current file and result, so download first." },
   { q: "Offline mode seems stuck or out of date", a: "Open Settings and choose Remove offline copy, then reload the page while online to download it again. This only removes the app's own files; FileForge never stores your documents." },
+  { q: "What can PDF Tools do?", a: "Merge several PDFs, split by page ranges, every N pages or every page, reorder, rotate, delete or extract pages with thumbnails, edit title/author/subject/keywords, and an experimental lossless compression. Everything runs on your device. Password-protected PDFs are refused. Merging and reordering keep the original page content untouched; form fields, bookmarks and tags may not carry over to a merged or extracted file." },
+  { q: "Compress didn't make my PDF smaller", a: "FileForge only repacks the file structure and never re-encodes images or fonts, so scanned and photo-heavy PDFs usually stay the same size. When no smaller file can be made you get your original back with a message." },
   { q: "Are my preferences saved?", a: "Only non-sensitive settings (theme, defaults) are stored in your browser's local storage. You can clear them in Settings." },
 ];
 

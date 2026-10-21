@@ -6,11 +6,13 @@ import { mkdirSync } from "node:fs";
 
 mkdirSync("public/workers", { recursive: true });
 const t0 = Date.now();
-await build({
-  input: "src/engine/convert.worker.ts",
-  platform: "browser",
-  logLevel: "warn",
-  transform: { define: { "process.env.NODE_ENV": '"production"' } },
-  output: { file: "public/workers/convert.worker.js", format: "esm", minify: true, sourcemap: false, codeSplitting: false },
-});
-console.log(`Built public/workers/convert.worker.js in ${Date.now() - t0} ms`);
+for (const name of ["convert", "pdf-tools"]) {
+  await build({
+    input: name === "convert" ? "src/engine/convert.worker.ts" : "src/engine/pdf-tools/pdf-tools.worker.ts",
+    platform: "browser",
+    logLevel: "warn",
+    transform: { define: { "process.env.NODE_ENV": '"production"' } },
+    output: { file: `public/workers/${name}.worker.js`, format: "esm", minify: true, sourcemap: false, codeSplitting: false },
+  });
+}
+console.log(`Built public/workers/{convert,pdf-tools}.worker.js in ${Date.now() - t0} ms`);

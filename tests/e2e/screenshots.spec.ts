@@ -161,3 +161,30 @@ for (const theme of ["dark", "light"] as const) {
     await page.screenshot({ path: `docs/screenshots/${tag}-22-batch-queue.png`, fullPage: true });
   });
 }
+
+const pdfCorpus = (name: string) => ({ name, mimeType: "application/pdf", buffer: readFileSync(path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../corpus", name)) });
+for (const theme of ["dark", "light"] as const) {
+  test(`phase 6 screens ${theme}`, async ({ page }, info) => {
+    const tag = `${info.project.name}-${theme}`;
+    await page.addInitScript((t) => localStorage.setItem("fileforge:settings:v1", JSON.stringify({ theme: t })), theme);
+    await page.goto("/pdf-tools/");
+    await page.getByTestId("file-input").waitFor({ state: "attached" });
+    await page.waitForTimeout(600);
+    await page.screenshot({ path: `docs/screenshots/${tag}-30-pdf-tools-empty.png`, fullPage: true });
+    await page.getByTestId("file-input").setInputFiles([pdfCorpus("pdf-text-simple.pdf"), pdfCorpus("pdf-two-column.pdf")]);
+    await page.locator('[data-testid="pdf-file-row"]:has-text("pages")').nth(1).waitFor();
+    await page.waitForTimeout(400);
+    await page.screenshot({ path: `docs/screenshots/${tag}-31-pdf-merge.png`, fullPage: true });
+    await page.getByTestId("tool-organize").click();
+    await page.getByTestId("page-card").first().locator("canvas").waitFor({ state: "visible" });
+    await page.getByTestId("page-rotate-cw").first().click();
+    await page.waitForTimeout(800);
+    await page.screenshot({ path: `docs/screenshots/${tag}-32-pdf-organize.png`, fullPage: true });
+    await page.getByTestId("tool-split").click();
+    await page.getByTestId("split-mode-each").click();
+    await page.getByTestId("run-tool").click();
+    await page.getByTestId("tool-result").waitFor();
+    await page.waitForTimeout(400);
+    await page.screenshot({ path: `docs/screenshots/${tag}-33-pdf-split-result.png`, fullPage: true });
+  });
+}

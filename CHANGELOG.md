@@ -1,5 +1,18 @@
 # Changelog
 
+## Phase 6: PDF Tools and release readiness (unreleased)
+
+### Added
+- PDF Tools workspace (`/pdf-tools/`): merge, split (ranges, every N, every page, ZIP), organize with thumbnails (reorder, rotate, delete, extract by range), properties editor (Unicode-safe), experimental lossless compression with before/after sizes. Runs in its own worker; cancellable; offline.
+- Per-file refusal of encrypted, damaged and non-PDF input; size and page limits; output verified by reopening.
+- Tests: ranges, tools against poppler (pdftotext/pdfinfo) and pdf.js, 14 browser tests (both viewports), offline PDF-tools run, performance measurements.
+- `docs/PHASE6_REPORT.md`, `docs/RELEASE_CHECKLIST.md`.
+
+### Changed
+- Primary navigation gains "PDF Tools"; mobile bottom bar has five items.
+- Light-theme warning color darkened for AA contrast on tinted badges.
+
+
 ## Phase 5: Offline PWA, performance, accessibility, hardening (unreleased)
 
 ### Added

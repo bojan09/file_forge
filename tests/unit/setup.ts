@@ -9,3 +9,6 @@ setFontLoader(async (file) => new Uint8Array(await readFile(path.resolve(__dirna
 import { runRender } from "@/engine/render";
 import { setRenderFallback } from "@/engine/worker-client";
 setRenderFallback((job, onStage) => runRender(job, onStage));
+import { runTool } from "@/engine/pdf-tools/run";
+import { setToolFallback } from "@/engine/pdf-tools/client";
+setToolFallback((req) => runTool(req));

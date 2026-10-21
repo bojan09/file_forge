@@ -39,6 +39,10 @@ Phase 2 adds batch conversion (queue, pause/resume/cancel/retry, shared and per-
 
 - Node.js 20 or newer (developed on 22), npm 10
 
+## PDF Tools
+
+`/pdf-tools/` works on PDFs entirely in the browser (pdf-lib in a worker; pdf.js thumbnails): merge, split (ranges, every N pages, every page; ZIP when more than one file), organize (reorder, rotate, delete, extract by range), edit title/author/subject/keywords, and experimental lossless compression. Every result is reopened and its page count checked before it is offered. Password-protected and damaged PDFs are refused per file. Limits: 60 MB per file, 200 MB and 1,500 pages per operation, 30 files. Form fields, bookmarks and tags are not carried into merged or extracted files.
+
 ## Using batch and merge
 
 1. On the start screen, select or drop **two or more files** to open the batch workspace. (One file opens the single-file workspace; "Add more files (batch)" there moves it into a batch.)
@@ -132,6 +136,8 @@ Deployment is not performed by this repository's tooling; nothing in the project
 
 ## Documentation
 
+- [`docs/PHASE6_REPORT.md`](docs/PHASE6_REPORT.md): PDF Tools, release audit, remaining issues
+- [`docs/RELEASE_CHECKLIST.md`](docs/RELEASE_CHECKLIST.md): release-readiness checklist
 - [`docs/PHASE5_REPORT.md`](docs/PHASE5_REPORT.md): offline PWA, performance, accessibility and privacy audit
 - [`docs/PHASE_1_REPORT.md`](docs/PHASE_1_REPORT.md): implemented vs deferred, test results, limitations
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md): layers, batch engine, how to add a format
@@ -143,4 +149,4 @@ Deployment is not performed by this repository's tooling; nothing in the project
 
 ## Third-party licenses (runtime dependencies)
 
-pdfmake (MIT), docx (MIT), markdown-it (MIT), DOMPurify (MPL-2.0 OR Apache-2.0), PapaParse (MIT), JSZip (MIT OR GPL-3.0-or-later; used under MIT; verification only), fflate (MIT; ZIP export), Next.js and React (MIT). Roboto font files bundled by pdfmake are Apache-2.0. Liberation Serif and Mono (served from `public/fonts`) are SIL OFL 1.1. pdf.js (pdfjs-dist, Apache-2.0) renders the preview locally; its worker is copied to `public/vendor` at install/build time. The Word, Excel and PDF parsers are our own code on top of fflate and pdf.js; no new dependency was added in Phase 4. Transitive dependencies of the production tree are MIT, ISC, BSD, Apache-2.0, 0BSD, BlueOak-1.0.0 or similar permissive licenses.
+pdfmake (MIT), docx (MIT), markdown-it (MIT), DOMPurify (MPL-2.0 OR Apache-2.0), PapaParse (MIT), JSZip (MIT OR GPL-3.0-or-later; used under MIT; verification only), fflate (MIT; ZIP export), pdf-lib (MIT; PDF Tools: merge, split, pages, properties), Next.js and React (MIT). Roboto font files bundled by pdfmake are Apache-2.0. Liberation Serif and Mono (served from `public/fonts`) are SIL OFL 1.1. pdf.js (pdfjs-dist, Apache-2.0) renders the preview locally; its worker is copied to `public/vendor` at install/build time. The Word, Excel and PDF parsers are our own code on top of fflate and pdf.js; Phase 4 added no dependency; Phase 6 added pdf-lib. Transitive dependencies of the production tree are MIT, ISC, BSD, Apache-2.0, 0BSD, BlueOak-1.0.0 or similar permissive licenses.

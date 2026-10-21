@@ -91,7 +91,7 @@ test.describe("offline", () => {
   test("after the first visit every conversion works with the network off, including preview, serif fonts and every page", async ({ page, context }) => {
     await waitOfflineReady(page);
     await context.setOffline(true);
-    for (const url of ["/", "/formats/", "/help/", "/privacy/", "/settings/"]) {
+    for (const url of ["/", "/pdf-tools/", "/formats/", "/help/", "/privacy/", "/settings/"]) {
       await page.goto(url);
       await expect(page.locator("h1").first()).toBeVisible();
     }
@@ -123,6 +123,12 @@ test.describe("offline", () => {
       const r = await convertAndDownload(page);
       expect(r.bytes.length).toBeGreaterThan(1000);
     }
+    // PDF tools use their own worker bundle; it must be in the offline copy too.
+    await page.goto("/pdf-tools/");
+    await page.getByTestId("file-input").setInputFiles([corpus("pdf-text-simple.pdf"), corpus("pdf-two-column.pdf")]);
+    await expect(page.locator('[data-testid="pdf-file-row"]:has-text("pages")')).toHaveCount(2, { timeout: 30000 });
+    await page.getByTestId("run-tool").click();
+    await expect(page.getByTestId("tool-result")).toContainText("Your PDF is ready", { timeout: 30000 });
     await context.setOffline(false);
   });
 

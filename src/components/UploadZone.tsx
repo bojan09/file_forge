@@ -21,7 +21,7 @@ export function useFilePicker(onFiles: (files: File[]) => void, opts: { accept?:
   return { inputRef, pick, onChange };
 }
 
-export function UploadZone({ onFiles, inputId, accept, mode = "convert" }: { onFiles: (files: File[]) => void; inputId?: string; accept?: string; mode?: "convert" | "merge" }) {
+export function UploadZone({ onFiles, inputId, accept, mode = "convert" }: { onFiles: (files: File[]) => void; inputId?: string; accept?: string; mode?: "convert" | "merge" | "pdf" }) {
   const autoId = useId();
   const id = inputId ?? `file-${autoId}`;
   const [dragging, setDragging] = useState(false);
@@ -75,8 +75,8 @@ export function UploadZone({ onFiles, inputId, accept, mode = "convert" }: { onF
           <UploadIcon size={30} />
         </span>
         <span className="mt-1 text-base font-semibold sm:text-lg">
-          <span className="hidden sm:inline">{dragging ? (mode === "merge" ? "Drop to add images" : "Drop to convert") : mode === "merge" ? "Drag & drop your images here" : "Drag & drop your files here"}</span>
-          <span className="sm:hidden">{mode === "merge" ? "Tap to select images" : "Tap to select files"}</span>
+          <span className="hidden sm:inline">{dragging ? (mode === "merge" ? "Drop to add images" : mode === "pdf" ? "Drop to add PDFs" : "Drop to convert") : mode === "merge" ? "Drag & drop your images here" : mode === "pdf" ? "Drag & drop your PDFs here" : "Drag & drop your files here"}</span>
+          <span className="sm:hidden">{mode === "merge" ? "Tap to select images" : mode === "pdf" ? "Tap to select PDFs" : "Tap to select files"}</span>
         </span>
         <span className="text-sm text-muted">
           <span className="hidden sm:inline">or </span>
@@ -86,7 +86,7 @@ export function UploadZone({ onFiles, inputId, accept, mode = "convert" }: { onF
           </span>
         </span>
         <span className="mt-2 max-w-xs text-xs leading-relaxed text-muted">
-          {mode === "merge" ? "JPG, PNG and WebP images. Up to 15 MB each." : "Supports TXT, Markdown, HTML, CSV, JPG, PNG, WebP, and experimental Word, Excel and PDF. Max size: 30 MB (varies by file type). Select several files to convert them as a batch."}
+          {mode === "merge" ? "JPG, PNG and WebP images. Up to 15 MB each." : mode === "pdf" ? "PDF files, up to 60 MB each. Password-protected PDFs are not supported." : "Supports TXT, Markdown, HTML, CSV, JPG, PNG, WebP, and experimental Word, Excel and PDF. Max size: 30 MB (varies by file type). Select several files to convert them as a batch."}
         </span>
       </label>
     </div>
