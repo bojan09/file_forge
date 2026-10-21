@@ -94,7 +94,7 @@ export function hardenBlocks(blocks: Block[]): Block[] {
     switch (b.type) {
       case "paragraph": {
         const groups = chunkRuns(splitUnbroken(b.runs));
-        groups.forEach((runs, i) => out.push({ type: "paragraph", runs, cont: b.cont || i < groups.length - 1 ? true : undefined }));
+        groups.forEach((runs, i) => out.push({ type: "paragraph", runs, align: b.align, cont: b.cont || i < groups.length - 1 ? true : undefined }));
         break;
       }
       case "heading":

@@ -6,7 +6,7 @@ import { currentDeviceMemory, effectiveBatchLimits } from "@/engine/batch/limits
 import { MergeList, createDefaultMergeDeps, defaultMergeSettings, type MergeSnapshot } from "@/engine/batch/merge";
 import { BatchQueue } from "@/engine/batch/queue";
 import type { BatchSnapshot } from "@/engine/batch/types";
-import { getSettings, useSettings } from "./settings";
+import { getSettings, parseOptionsFromSettings, styleFromSettings, useSettings } from "./settings";
 
 export type HomeMode = "convert" | "merge";
 
@@ -22,13 +22,13 @@ const Ctx = createContext<BatchContextValue | null>(null);
 function create() {
   const s = getSettings();
   const { limits } = effectiveBatchLimits(s.processing, currentDeviceMemory());
-  const queue = new BatchQueue(createDefaultDeps(() => getSettings().processing), {
+  const queue = new BatchQueue(createDefaultDeps(() => getSettings().processing, () => parseOptionsFromSettings(getSettings())), {
     limits,
     processing: s.processing,
     shared: {
       output: s.defaultOutput,
       // "auto" orientation: documents use portrait, images follow each image's own orientation.
-      page: { pageSize: s.pageSize, orientation: s.orientation === "landscape" ? "landscape" : "auto", margins: s.margins, imageQuality: s.imageQuality, imageFit: s.imageFit },
+      page: { pageSize: s.pageSize, orientation: s.orientation === "landscape" ? "landscape" : "auto", margins: s.margins, imageQuality: s.imageQuality, imageFit: s.imageFit, style: styleFromSettings(s) },
       suffix: s.suffix,
     },
   });

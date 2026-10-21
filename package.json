@@ -11,7 +11,10 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:e2e": "playwright test",
-    "check": "npm run lint && npm run typecheck && npm test && npm run build"
+    "check": "npm run lint && npm run typecheck && npm test && npm run build",
+    "prebuild": "node scripts/copy-pdfjs-worker.mjs",
+    "predev": "node scripts/copy-pdfjs-worker.mjs",
+    "postinstall": "node scripts/copy-pdfjs-worker.mjs"
   },
   "dependencies": {
     "docx": "^9.13.0",
@@ -21,6 +24,7 @@
     "markdown-it": "^15.0.3",
     "next": "^16.4.2",
     "papaparse": "^5.7.0",
+    "pdfjs-dist": "^6.4.299",
     "pdfmake": "^0.3.12",
     "react": "^19.3.1",
     "react-dom": "^19.3.1"
@@ -38,7 +42,6 @@
     "eslint": "^9.39.5",
     "eslint-config-next": "^16.4.2",
     "jsdom": "^29.1.1",
-    "pdfjs-dist": "^6.4.299",
     "postcss": "^8.5.31",
     "serve": "^14.2.6",
     "tailwindcss": "^4.3.3",

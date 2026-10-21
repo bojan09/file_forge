@@ -56,6 +56,32 @@ function Select<K extends keyof Settings>({ label, name, value, options }: { lab
   );
 }
 
+function NumSelect({ label, name, value, options }: { label: string; name: "fontSize" | "lineSpacing"; value: number; options: { value: number; label: string }[] }) {
+  return (
+    <div className="space-y-1.5">
+      <label htmlFor={`f-${name}`} className="block text-xs font-semibold text-muted">
+        {label}
+      </label>
+      <select id={`f-${name}`} className="field" value={String(value)} onChange={(e) => updateSettings({ [name]: Number(e.target.value) })}>
+        {options.map((o) => (
+          <option key={o.value} value={o.value}>
+            {o.label}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
+function Toggle({ id, label, name, checked }: { id: string; label: string; name: "tableZebra" | "tableHeaderFill"; checked: boolean }) {
+  return (
+    <label htmlFor={id} className="flex min-h-9 cursor-pointer items-center gap-2.5 text-sm">
+      <input id={id} type="checkbox" className="size-4 accent-[var(--accent)]" checked={checked} onChange={(e) => updateSettings({ [name]: e.target.checked })} />
+      {label}
+    </label>
+  );
+}
+
 export function SettingsForm() {
   const s = useSettings();
   const [cleared, setCleared] = useState(false);
@@ -85,13 +111,36 @@ export function SettingsForm() {
           <Select label="Page size" name="pageSize" value={s.pageSize} options={[{ value: "A4", label: "A4" }, { value: "LETTER", label: "Letter" }, { value: "LEGAL", label: "Legal" }]} />
           <Select label="Margins" name="margins" value={s.margins} options={[{ value: "narrow", label: "Narrow" }, { value: "normal", label: "Normal" }, { value: "wide", label: "Wide" }]} />
         </div>
-        <Radio label="Orientation" name="orientation" value={s.orientation} options={[{ value: "portrait", label: "Portrait" }, { value: "landscape", label: "Landscape" }]} />
+        <Radio label="Orientation" name="orientation" value={s.orientation} options={[{ value: "auto", label: "Auto" }, { value: "portrait", label: "Portrait" }, { value: "landscape", label: "Landscape" }]} />
         <div className="space-y-1.5">
           <label htmlFor="f-suffix" className="block text-xs font-semibold text-muted">
             Filename suffix (added before the extension)
           </label>
           <input id="f-suffix" className="field" value={s.suffix} maxLength={30} placeholder="e.g. _converted" onChange={(e) => updateSettings({ suffix: e.target.value })} />
         </div>
+      </Card>
+
+      <Card title="Document style">
+        <p className="text-sm text-muted">Applies to text, Markdown, HTML and CSV conversions. You can still change these for a single file under Advanced options.</p>
+        <Radio label="Font" name="fontFamily" value={s.fontFamily} options={[{ value: "sans", label: "Sans" }, { value: "serif", label: "Serif" }, { value: "mono", label: "Mono" }]} />
+        <div className="grid gap-4 sm:grid-cols-2">
+          <NumSelect label="Font size" name="fontSize" value={s.fontSize} options={[9, 10, 11, 12, 13, 14, 16].map((v) => ({ value: v, label: `${v} pt${v === 11 ? " (default)" : ""}` }))} />
+          <NumSelect label="Line spacing" name="lineSpacing" value={s.lineSpacing} options={[1, 1.15, 1.3, 1.5, 2].map((v) => ({ value: v, label: v === 1.3 ? "1.3 (default)" : String(v) }))} />
+        </div>
+        <Select label="Page numbers" name="pageNumbers" value={s.pageNumbers} options={[{ value: "none", label: "None" }, { value: "n", label: "1" }, { value: "n-of-N", label: "1 / 5" }, { value: "page-n-of-N", label: "Page 1 of 5" }]} />
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Select label="Table borders" name="tableBorders" value={s.tableBorders} options={[{ value: "grid", label: "Full grid" }, { value: "horizontal", label: "Horizontal lines" }, { value: "none", label: "None" }]} />
+          <Select label="Column widths" name="columnSizing" value={s.columnSizing} options={[{ value: "content", label: "Fit content" }, { value: "equal", label: "Equal" }]} />
+        </div>
+        <div className="grid gap-1 sm:grid-cols-2">
+          <Toggle id="f-zebra" label="Alternate row shading" name="tableZebra" checked={s.tableZebra} />
+          <Toggle id="f-hfill" label="Shade the table header row" name="tableHeaderFill" checked={s.tableHeaderFill} />
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Select label="CSV delimiter" name="csvDelimiter" value={s.csvDelimiter} options={[{ value: "auto", label: "Auto-detect" }, { value: ",", label: "Comma" }, { value: ";", label: "Semicolon" }, { value: "\t", label: "Tab" }, { value: "|", label: "Pipe" }]} />
+          <Select label="CSV first row" name="csvHeader" value={s.csvHeader} options={[{ value: "first", label: "Is the header" }, { value: "none", label: "Is data" }]} />
+        </div>
+        <Radio label="Markdown output" name="markdown" value={s.markdown} options={[{ value: "formatted", label: "Formatted" }, { value: "source", label: "Source text" }]} />
       </Card>
 
       <Card title="Images">

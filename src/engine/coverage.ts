@@ -1,13 +1,14 @@
 import { FONT_RANGES } from "./font-coverage";
 import { hardenBlocks } from "./layout-safe";
-import type { Block, ConversionWarning, Inline, NormalizedDoc } from "./types";
+import type { Block, ConversionWarning, FontFamilyName, Inline, NormalizedDoc } from "./types";
 
-function supported(cp: number): boolean {
+function supported(cp: number, family: FontFamilyName): boolean {
+  const ranges = FONT_RANGES[family];
   let lo = 0;
-  let hi = FONT_RANGES.length - 1;
+  let hi = ranges.length - 1;
   while (lo <= hi) {
     const mid = (lo + hi) >> 1;
-    const [a, b] = FONT_RANGES[mid]!;
+    const [a, b] = ranges[mid]!;
     if (cp < a) hi = mid - 1;
     else if (cp > b) lo = mid + 1;
     else return true;
@@ -26,7 +27,7 @@ export interface CoverageReport {
   samples: string[];
 }
 
-export function replaceUnsupported(text: string, report?: CoverageReport): string {
+export function replaceUnsupported(text: string, report?: CoverageReport, family: FontFamilyName = "sans"): string {
   let out = "";
   for (const ch of text) {
     const cp = ch.codePointAt(0)!;
@@ -35,7 +36,7 @@ export function replaceUnsupported(text: string, report?: CoverageReport): strin
       continue;
     }
     if (report && !/\s/.test(ch)) report.total++;
-    if (supported(cp)) out += ch;
+    if (supported(cp, family)) out += ch;
     else {
       out += "?";
       if (report) {
@@ -47,29 +48,29 @@ export function replaceUnsupported(text: string, report?: CoverageReport): strin
   return out;
 }
 
-function mapRuns(runs: Inline[], report: CoverageReport): Inline[] {
-  return runs.map((r) => ({ ...r, text: replaceUnsupported(r.text, report) }));
+function mapRuns(runs: Inline[], report: CoverageReport, family: FontFamilyName): Inline[] {
+  return runs.map((r) => ({ ...r, text: replaceUnsupported(r.text, report, r.code ? "mono" : family) }));
 }
 
-function mapBlock(b: Block, report: CoverageReport): Block {
+function mapBlock(b: Block, report: CoverageReport, family: FontFamilyName): Block {
   switch (b.type) {
     case "heading":
     case "paragraph":
-      return { ...b, runs: mapRuns(b.runs, report) };
+      return { ...b, runs: mapRuns(b.runs, report, family) };
     case "code":
-      return { ...b, text: replaceUnsupported(b.text, report) };
+      return { ...b, text: replaceUnsupported(b.text, report, "mono") };
     case "quote":
-      return { ...b, blocks: b.blocks.map((x) => mapBlock(x, report)) };
+      return { ...b, blocks: b.blocks.map((x) => mapBlock(x, report, family)) };
     case "list":
       return {
         ...b,
-        items: b.items.map((it) => ({ runs: mapRuns(it.runs, report), children: it.children?.map((x) => mapBlock(x, report)) })),
+        items: b.items.map((it) => ({ runs: mapRuns(it.runs, report, family), children: it.children?.map((x) => mapBlock(x, report, family)) })),
       };
     case "table":
       return {
         ...b,
-        header: b.header ? b.header.map((c) => mapRuns(c, report)) : null,
-        rows: b.rows.map((r) => r.map((c) => mapRuns(c, report))),
+        header: b.header ? b.header.map((c) => mapRuns(c, report, family)) : null,
+        rows: b.rows.map((r) => r.map((c) => mapRuns(c, report, family))),
       };
     default:
       return b;
@@ -80,16 +81,16 @@ function mapBlock(b: Block, report: CoverageReport): Block {
 export const MAX_UNSUPPORTED_RATIO = 0.3;
 
 /** Counts characters the bundled PDF font lacks without modifying the document. */
-export function measureCoverage(doc: NormalizedDoc): CoverageReport {
+export function measureCoverage(doc: NormalizedDoc, family: FontFamilyName = "sans"): CoverageReport {
   const report: CoverageReport = { total: 0, unsupported: 0, samples: [] };
-  doc.blocks.forEach((b) => mapBlock(b, report));
+  doc.blocks.forEach((b) => mapBlock(b, report, family));
   return report;
 }
 
 /** Returns a PDF-safe copy of the document plus a warning describing any replacements. */
-export function prepareForPdf(doc: NormalizedDoc): { doc: NormalizedDoc; report: CoverageReport; warning?: ConversionWarning } {
+export function prepareForPdf(doc: NormalizedDoc, family: FontFamilyName = "sans"): { doc: NormalizedDoc; report: CoverageReport; warning?: ConversionWarning } {
   const report: CoverageReport = { total: 0, unsupported: 0, samples: [] };
-  const blocks = hardenBlocks(doc.blocks.map((b) => mapBlock(b, report)));
+  const blocks = hardenBlocks(doc.blocks.map((b) => mapBlock(b, report, family)));
   const warning = report.unsupported
     ? {
         code: "pdf-glyphs",

@@ -21,6 +21,7 @@ export function effectiveSettings(item: Pick<QueueItem, "overrides">, shared: Sh
     margins: o.margins ?? shared.page.margins,
     imageQuality: o.imageQuality ?? shared.page.imageQuality,
     imageFit: o.imageFit ?? shared.page.imageFit,
+    style: shared.page.style,
   };
 }
 

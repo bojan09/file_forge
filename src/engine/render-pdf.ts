@@ -1,112 +1,203 @@
 import * as pdfMakeNs from "pdfmake/build/pdfmake";
 import vfsNs from "pdfmake/build/vfs_fonts";
 import type { Content, TDocumentDefinitions } from "pdfmake/interfaces";
-import { absoluteWidths, columnWeights, pageDims, tableFontSize, textOf } from "./page";
-import type { Block, Inline, NormalizedDoc, Orientation, PageSettings, PreparedImage } from "./types";
+import { FAMILY_FILES, loadFamily } from "./fonts";
+import { absoluteWidths, columnWeights, numericColumns, pageDims, tableFontSize, textOf } from "./page";
+import { autoOrientation, pageNumberLabel, resolveStyle } from "./style";
+import type { Block, FontFamilyName, Inline, NormalizedDoc, Orientation, PageSettings, PreparedImage, StyleSettings } from "./types";
 
 // The UMD bundle is CommonJS: depending on the bundler, the live module object is the namespace or its `default`.
 const pdfMake = ((pdfMakeNs as unknown as { default?: typeof pdfMakeNs }).default ?? pdfMakeNs) as typeof pdfMakeNs;
 const vfs = ((vfsNs as unknown as { default?: typeof vfsNs }).default ?? vfsNs) as typeof vfsNs;
 
-let fontsReady = false;
-function ensureFonts() {
-  if (fontsReady) return;
+let robotoReady = false;
+const registered = new Set<string>();
+function ensureRoboto() {
+  if (robotoReady) return;
   pdfMake.addVirtualFileSystem(vfs);
   pdfMake.addFonts({
     Roboto: { normal: "Roboto-Regular.ttf", bold: "Roboto-Medium.ttf", italics: "Roboto-Italic.ttf", bolditalics: "Roboto-MediumItalic.ttf" },
   });
-  fontsReady = true;
+  robotoReady = true;
+}
+/** Image PDFs only need the bundled font (page labels); kept for the image renderers. */
+const ensureFonts = ensureRoboto;
+
+/** Registers a Liberation family on demand. Returns the pdfmake font name, or null if it could not be loaded. */
+async function ensureFamily(family: FontFamilyName): Promise<string | null> {
+  ensureRoboto();
+  if (family === "sans") return "Roboto";
+  const files = FAMILY_FILES[family];
+  if (registered.has(files.name)) return files.name;
+  try {
+    const { vfs: faces } = await loadFamily(family);
+    pdfMake.addVirtualFileSystem(faces);
+    pdfMake.addFonts({ [files.name]: { normal: files.normal, bold: files.bold, italics: files.italics, bolditalics: files.bolditalics } });
+    registered.add(files.name);
+    return files.name;
+  } catch {
+    return null;
+  }
 }
 
 const LINK = "#1d4ed8";
-const HEADING_SIZE = { 1: 22, 2: 18, 3: 15, 4: 13, 5: 11.5, 6: 11 } as const;
+const HEADING_RATIO = { 1: 2, 2: 1.64, 3: 1.36, 4: 1.18, 5: 1.05, 6: 1 } as const;
 
-function runsToContent(runs: Inline[]): Content[] {
+interface Ctx {
+  style: StyleSettings;
+  contentWidth: number;
+  contentHeight: number;
+  /** pdfmake font name for body text and for code. */
+  body: string;
+  mono: string;
+  images: Record<string, string>;
+  pendingBreak: boolean;
+}
+
+function runsToContent(runs: Inline[], ctx: Ctx): Content[] {
   return runs.map((r) => {
     const node: Record<string, unknown> = { text: r.text };
     if (r.bold) node.bold = true;
     if (r.italic) node.italics = true;
-    if (r.strike) node.decoration = "lineThrough";
-    if (r.code) node.background = "#eceff4";
+    const deco: string[] = [];
+    if (r.strike) deco.push("lineThrough");
+    if (r.underline || r.link) deco.push("underline");
+    if (deco.length) node.decoration = deco.length === 1 ? deco[0] : deco;
+    if (r.color) node.color = r.color;
+    if (r.code) {
+      node.background = "#eceff4";
+      node.font = ctx.mono;
+      node.fontSize = Math.round(ctx.style.fontSize * 0.92 * 10) / 10;
+    }
     if (r.link) {
       node.link = r.link;
-      node.color = LINK;
-      node.decoration = r.strike ? ["underline", "lineThrough"] : "underline";
+      node.color = r.color ?? LINK;
     }
     return node as unknown as Content;
   });
 }
 
-function textNode(runs: Inline[], extra: Record<string, unknown> = {}): Content {
-  return { text: runsToContent(runs), ...extra } as Content;
+function textNode(runs: Inline[], ctx: Ctx, extra: Record<string, unknown> = {}): Content {
+  return { text: runsToContent(runs, ctx), lineHeight: ctx.style.lineSpacing, ...extra } as Content;
 }
 
-function blocksToContent(blocks: Block[], contentWidth: number): Content[] {
+/** Marks the next emitted node to start on a new page (a trailing page break does nothing). */
+function take(ctx: Ctx, node: Content): Content {
+  if (ctx.pendingBreak) {
+    ctx.pendingBreak = false;
+    (node as unknown as Record<string, unknown>).pageBreak = "before";
+  }
+  return node;
+}
+
+function tableLayout(b: Extract<Block, { type: "table" }>, ctx: Ctx, pad: number) {
+  const { tableZebra, tableBorders, tableHeaderFill } = ctx.style;
+  const line = "#cfd4e0";
+  return {
+    fillColor: (row: number) => {
+      if (b.header && row === 0) return tableHeaderFill ? "#e8ecfb" : null;
+      if (!tableZebra) return null;
+      return (b.header ? row : row + 1) % 2 === 0 ? "#f7f8fb" : null;
+    },
+    hLineColor: () => line,
+    vLineColor: () => line,
+    hLineWidth: (i: number, node: { table: { body: unknown[] } }) =>
+      tableBorders === "none" ? 0 : tableBorders === "horizontal" ? (i === 0 || i === node.table.body.length ? 0.8 : 0.5) : 0.5,
+    vLineWidth: () => (tableBorders === "grid" ? 0.5 : 0),
+    paddingLeft: () => pad,
+    paddingRight: () => pad,
+    paddingTop: () => pad - 1,
+    paddingBottom: () => pad - 1,
+  };
+}
+
+function blocksToContent(blocks: Block[], ctx: Ctx, width: number, nested = false): Content[] {
   const out: Content[] = [];
+  const fs = ctx.style.fontSize;
   for (const b of blocks) {
     switch (b.type) {
       case "heading":
-        out.push(textNode(b.runs, { fontSize: HEADING_SIZE[b.level], bold: true, margin: [0, b.level <= 2 ? 14 : 10, 0, 6], headlineLevel: b.level, keepWithNext: true } as Record<string, unknown>));
+        out.push(
+          take(
+            ctx,
+            textNode(b.runs, ctx, {
+              fontSize: Math.round(fs * HEADING_RATIO[b.level] * 10) / 10,
+              bold: true,
+              alignment: b.align ?? "left",
+              margin: [0, b.level <= 2 ? 14 : 10, 0, 6],
+              headlineLevel: b.level,
+              keepWithNext: true,
+              lineHeight: Math.max(1.1, ctx.style.lineSpacing - 0.1),
+            } as Record<string, unknown>),
+          ),
+        );
         break;
       case "paragraph":
-        out.push(textNode(b.runs, { margin: [0, 0, 0, b.cont ? 0 : 8], lineHeight: 1.3 }));
+        out.push(take(ctx, textNode(b.runs, ctx, { margin: [0, 0, 0, b.cont ? 0 : 8], alignment: b.align ?? "left" })));
         break;
+      case "pagebreak":
+        if (!nested) ctx.pendingBreak = true;
+        break;
+      case "image": {
+        const key = `img${Object.keys(ctx.images).length}`;
+        ctx.images[key] = toDataUri(b.image.bytes, b.image.mime);
+        // 1 px = 0.75 pt; never wider than the text column or taller than the page body.
+        const scale = Math.min(0.75, width / b.image.width, (ctx.contentHeight * 0.92) / b.image.height);
+        out.push(take(ctx, { image: key, width: b.image.width * scale, height: b.image.height * scale, alignment: b.align ?? "left", margin: [0, 2, 0, 8] } as Content));
+        break;
+      }
       case "list": {
         const items = b.items.map((it) => {
-          const head = textNode(it.runs, { lineHeight: 1.25 });
+          const head = textNode(it.runs, ctx);
           if (!it.children?.length) return head;
-          return { stack: [head, ...blocksToContent(it.children, contentWidth - 18)] } as Content;
+          return { stack: [head, ...blocksToContent(it.children, ctx, width - 18, true)] } as Content;
         });
-        out.push((b.ordered ? { ol: items, margin: [0, 0, 0, 8] } : { ul: items, margin: [0, 0, 0, 8] }) as Content);
+        out.push(take(ctx, (b.plain ? { ul: items, type: "none", margin: [0, 0, 0, 8] } : b.ordered ? { ol: items, margin: [0, 0, 0, 8] } : { ul: items, margin: [0, 0, 0, 8] }) as Content));
         break;
       }
       case "code": {
         const lines = b.text.split("\n");
-        out.push({
-          margin: [0, 0, 0, 8],
-          table: { widths: ["*"], body: lines.map((l) => [{ text: l.length ? l : " ", preserveLeadingSpaces: true, fontSize: 9, lineHeight: 1.15 }]) },
-          layout: { fillColor: () => "#f1f3f7", hLineWidth: () => 0, vLineWidth: () => 0, paddingLeft: () => 8, paddingRight: () => 8, paddingTop: () => 0.5, paddingBottom: () => 0.5 },
-        } as Content);
+        const size = Math.round(fs * 0.82 * 10) / 10;
+        out.push(
+          take(ctx, {
+            margin: [0, 0, 0, 8],
+            table: { widths: ["*"], body: lines.map((l) => [{ text: l.length ? l : " ", preserveLeadingSpaces: true, fontSize: size, font: ctx.mono, lineHeight: 1.15 }]) },
+            layout: { fillColor: () => "#f1f3f7", hLineWidth: () => 0, vLineWidth: () => 0, paddingLeft: () => 8, paddingRight: () => 8, paddingTop: () => 0.5, paddingBottom: () => 0.5 },
+          } as Content),
+        );
         break;
       }
-      case "quote":
-        out.push({ stack: blocksToContent(b.blocks, contentWidth - 18), margin: [18, 0, 0, 4], color: "#4b5563", italics: true } as Content);
+      case "quote": {
+        const inner = blocksToContent(b.blocks, ctx, width - 18, true);
+        out.push(take(ctx, { stack: inner, margin: [18, 0, 0, 4], color: "#4b5563", italics: true } as Content));
         break;
+      }
       case "rule":
-        out.push({ canvas: [{ type: "line", x1: 0, y1: 0, x2: contentWidth, y2: 0, lineWidth: 0.8, lineColor: "#9ca3af" }], margin: [0, 6, 0, 10] } as Content);
+        out.push(take(ctx, { canvas: [{ type: "line", x1: 0, y1: 0, x2: width, y2: 0, lineWidth: 0.8, lineColor: "#9ca3af" }], margin: [0, 6, 0, 10] } as Content));
         break;
       case "table": {
         const cols = Math.max(b.header?.length ?? 0, ...b.rows.map((r) => r.length), 1);
-        const size = tableFontSize(cols);
+        const size = Math.round(tableFontSize(cols) * (fs / 11) * ctx.style.tableFontScale * 10) / 10;
         const pad = cols > 9 ? 2 : 4;
         // pdfmake adds cell padding and borders on top of column widths, so reserve room for them.
-        const available = contentWidth - cols * pad * 2 - (cols + 1) * 0.5;
-        const widths = absoluteWidths(columnWeights(b), available, Math.min(30, available / cols));
+        const available = width - cols * pad * 2 - (cols + 1) * 0.5;
+        const weights = ctx.style.columnSizing === "equal" ? Array(cols).fill(1) : columnWeights(b);
+        const widths = absoluteWidths(weights, available, Math.min(30, available / cols));
+        const numeric = b.autoAlign && ctx.style.numberAlign === "auto" ? numericColumns(b) : [];
+        const alignOf = (c: number, header: boolean) => {
+          const a = b.align?.[c];
+          if (a && a !== "left") return a;
+          return numeric[c] ? "right" : header ? "left" : (a ?? "left");
+        };
         const cell = (runs: Inline[], header: boolean, c: number) => ({
-          text: runs.length ? runsToContent(runs) : "",
+          text: runs.length ? runsToContent(runs, ctx) : "",
           bold: header,
           fontSize: size,
-          alignment: b.align?.[c] ?? "left",
+          lineHeight: Math.min(ctx.style.lineSpacing, 1.3),
+          alignment: alignOf(c, header),
         });
-        const body = [
-          ...(b.header ? [b.header.map((r, c) => cell(r, true, c))] : []),
-          ...b.rows.map((row) => row.map((r, c) => cell(r, false, c))),
-        ];
-        out.push({
-          margin: [0, 2, 0, 10],
-          table: { headerRows: b.header ? 1 : 0, widths, body },
-          layout: {
-            fillColor: (row: number) => (b.header && row === 0 ? "#e8ecfb" : row % 2 === 0 ? "#f7f8fb" : null),
-            hLineColor: () => "#cfd4e0",
-            vLineColor: () => "#cfd4e0",
-            hLineWidth: () => 0.5,
-            vLineWidth: () => 0.5,
-            paddingLeft: () => pad,
-            paddingRight: () => pad,
-            paddingTop: () => pad - 1,
-            paddingBottom: () => pad - 1,
-          },
-        } as Content);
+        const body = [...(b.header ? [b.header.map((r, c) => cell(r, true, c))] : []), ...b.rows.map((row) => row.map((r, c) => cell(r, false, c)))];
+        out.push(take(ctx, { margin: [0, 2, 0, 10], table: { headerRows: b.header ? 1 : 0, widths, body }, layout: tableLayout(b, ctx, pad) } as Content));
         break;
       }
     }
@@ -125,26 +216,77 @@ function toDataUri(bytes: Uint8Array, mime: string): string {
 export interface PdfOutput {
   bytes: Uint8Array;
   pageCount: number;
+  /** Set when the requested font could not be loaded and the bundled sans font was used instead. */
+  fontFallback?: FontFamilyName;
+}
+
+function needsMono(doc: NormalizedDoc): boolean {
+  const walk = (blocks: Block[]): boolean =>
+    blocks.some((b) => {
+      if (b.type === "code") return true;
+      if (b.type === "heading" || b.type === "paragraph") return b.runs.some((r) => r.code);
+      if (b.type === "quote") return walk(b.blocks);
+      if (b.type === "list") return b.items.some((it) => it.runs.some((r) => r.code) || (it.children ? walk(it.children) : false));
+      if (b.type === "table") return [...(b.header ? [b.header] : []), ...b.rows].some((row) => row.some((cell) => cell.some((r) => r.code)));
+      return false;
+    });
+  return walk(doc.blocks);
 }
 
 export async function renderTextPdf(doc: NormalizedDoc, settings: PageSettings, title: string): Promise<PdfOutput> {
-  ensureFonts();
-  const orientation: Orientation = settings.orientation === "landscape" ? "landscape" : "portrait";
+  const style = resolveStyle(settings.style);
+  const requested = settings.orientation === "auto" ? autoOrientation(doc) : settings.orientation;
+  const orientation: Orientation = requested === "landscape" ? "landscape" : "portrait";
   const dims = pageDims(settings, orientation);
+
+  let body = await ensureFamily(style.fontFamily);
+  const fontFallback = body === null && style.fontFamily !== "sans" ? style.fontFamily : undefined;
+  body ??= await ensureFamily("sans");
+  let mono = "Roboto";
+  if (style.fontFamily === "mono") mono = body ?? "Roboto";
+  else if (needsMono(doc)) mono = (await ensureFamily("mono")) ?? "Roboto";
+
+  const ctx: Ctx = { style, contentWidth: dims.contentWidth, contentHeight: dims.contentHeight, body: body ?? "Roboto", mono, images: {}, pendingBreak: false };
   let pageCount = 0;
+  const hasFooter = style.pageNumbers !== "none" || style.footerText;
+  const bottom = hasFooter ? Math.max(dims.margin, 40) : dims.margin;
+  const top = style.headerText ? Math.max(dims.margin, 40) : dims.margin;
+  const meta = doc.meta;
   const def: TDocumentDefinitions = {
-    info: { title, creator: "FileForge", producer: "FileForge" },
+    info: {
+      title: meta?.title || title,
+      author: meta?.author,
+      subject: meta?.subject,
+      keywords: meta?.keywords?.join(", "),
+      creator: "FileForge",
+      producer: "FileForge",
+    },
     pageSize: { width: dims.width, height: dims.height },
-    pageMargins: [dims.margin, dims.margin, dims.margin, Math.max(dims.margin, 40)],
-    defaultStyle: { font: "Roboto", fontSize: 11, lineHeight: 1.25 },
-    content: blocksToContent(doc.blocks, dims.contentWidth),
-    footer: (current: number, count: number) => {
+    pageMargins: [dims.margin, top, dims.margin, bottom],
+    defaultStyle: { font: ctx.body, fontSize: style.fontSize, lineHeight: style.lineSpacing },
+    content: blocksToContent(doc.blocks, ctx, dims.contentWidth),
+    images: ctx.images,
+    header: style.headerText ? () => ({ text: style.headerText, alignment: "center", fontSize: 8.5, color: "#6b7280", margin: [dims.margin, 18, dims.margin, 0] }) : undefined,
+    footer: !hasFooter ? undefined : (current: number, count: number) => {
       pageCount = count;
-      return { text: `${current} / ${count}`, alignment: "center", fontSize: 8, color: "#6b7280", margin: [0, 14, 0, 0] };
+      const label = pageNumberLabel(style.pageNumbers, current, count);
+      const gray = { fontSize: 8, color: "#6b7280" };
+      if (style.footerText && label) {
+        return { columns: [{ text: style.footerText, alignment: "left", ...gray }, { text: label, alignment: "right", width: "auto", ...gray }], margin: [dims.margin, 14, dims.margin, 0] } as Content;
+      }
+      return { text: style.footerText || label, alignment: "center", ...gray, margin: [dims.margin, 14, dims.margin, 0] } as Content;
     },
   };
   const bytes = await pdfMake.createPdf(def).getBuffer();
-  return { bytes: new Uint8Array(bytes), pageCount };
+  // pdfmake only calls the footer callback when there is something to draw; fall back to a count from the file.
+  if (!pageCount) pageCount = countPages(bytes);
+  return { bytes: new Uint8Array(bytes), pageCount, fontFallback };
+}
+
+function countPages(bytes: Uint8Array): number {
+  let s = "";
+  for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  return (s.match(/\/Type\s*\/Page\b(?!s)/g) ?? []).length;
 }
 
 export async function renderImagePdf(image: PreparedImage, settings: PageSettings, title: string): Promise<PdfOutput> {

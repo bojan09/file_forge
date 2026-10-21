@@ -1,4 +1,6 @@
 import { prepareForPdf, MAX_UNSUPPORTED_RATIO } from "./coverage";
+import { normalizeDocImages } from "./doc-images";
+import { resolveStyle } from "./style";
 import { renderDocx } from "./render-docx";
 import { renderImagePdf, renderImagesPdf, renderTextPdf } from "./render-pdf";
 import { verifyDocx, verifyPdf } from "./verify";
@@ -33,7 +35,8 @@ export async function runRender(job: RenderJob, onStage: (s: Stage) => void = ()
   }
 
   if (job.output === "pdf") {
-    const { doc, report, warning } = prepareForPdf(job.doc);
+    const style = resolveStyle(job.settings.style);
+    const { doc, report, warning } = prepareForPdf(job.doc, style.fontFamily);
     if (report.total > 0 && report.unsupported / report.total > MAX_UNSUPPORTED_RATIO) {
       throw new FileForgeError(
         "pdf-unsupported-script",
@@ -41,16 +44,19 @@ export async function runRender(job: RenderJob, onStage: (s: Stage) => void = ()
       );
     }
     onStage("rendering");
-    const pdf = await renderTextPdf(doc, job.settings, job.title);
+    const prepared = await normalizeDocImages(doc);
+    const pdf = await renderTextPdf(prepared.doc, job.settings, job.title);
     onStage("verifying");
-    const checks = verifyPdf(pdf.bytes, { pageCount: pdf.pageCount, kind: "text" });
+    const checks = verifyPdf(pdf.bytes, { pageCount: pdf.pageCount, kind: "text", embeddedImages: doc.imageCount ?? 0 });
     if (warning) checks.push({ id: "glyphs", label: warning.message, passed: false });
+    if (prepared.dropped) checks.push({ id: "images-dropped", label: `${prepared.dropped} image${prepared.dropped > 1 ? "s" : ""} with transparency could not be prepared here and ${prepared.dropped > 1 ? "were" : "was"} replaced by alt text.`, passed: false });
+    if (pdf.fontFallback) checks.push({ id: "font-fallback", label: `The ${pdf.fontFallback} font could not be loaded, so the default sans font was used.`, passed: false });
     return { bytes: pdf.bytes, mime: "application/pdf", extension: "pdf", pageCount: pdf.pageCount, checks };
   }
 
   onStage("rendering");
   const bytes = await renderDocx(job.doc, job.settings, job.title);
   onStage("verifying");
-  const checks = await verifyDocx(bytes, job.doc);
+  const checks = await verifyDocx(bytes, job.doc, job.settings);
   return { bytes, mime: "application/vnd.openxmlformats-officedocument.wordprocessingml.document", extension: "docx", checks };
 }

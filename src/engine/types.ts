@@ -5,7 +5,10 @@ export interface Inline {
   bold?: boolean;
   italic?: boolean;
   strike?: boolean;
+  underline?: boolean;
   code?: boolean;
+  /** Text color as "#rrggbb". Only validated colors reach the model. */
+  color?: string;
   /** Only http(s) and mailto links survive normalisation. */
   link?: string;
 }
@@ -16,17 +19,29 @@ export interface ListItem {
   children?: Block[];
 }
 
-export type Align = "left" | "center" | "right";
+export type Align = "left" | "center" | "right" | "justify";
+
+/** Raster image embedded in a document. Only JPEG and PNG whose bytes were sniffed and measured. */
+export interface ImageData {
+  bytes: Uint8Array;
+  mime: "image/jpeg" | "image/png";
+  width: number;
+  height: number;
+  alt?: string;
+}
 
 export type Block =
-  | { type: "heading"; level: 1 | 2 | 3 | 4 | 5 | 6; runs: Inline[] }
+  | { type: "heading"; level: 1 | 2 | 3 | 4 | 5 | 6; runs: Inline[]; align?: Align }
   /** `cont` marks a paragraph continued from the previous block (used when long paragraphs are split for layout). */
-  | { type: "paragraph"; runs: Inline[]; cont?: boolean }
-  | { type: "list"; ordered: boolean; items: ListItem[] }
+  | { type: "paragraph"; runs: Inline[]; cont?: boolean; align?: Align }
+  | { type: "pagebreak" }
+  | { type: "image"; image: ImageData; align?: Align }
+  /** `plain` lists draw no bullet or number of their own (task lists carry their own ○ / ● markers). */
+  | { type: "list"; ordered: boolean; items: ListItem[]; plain?: boolean }
   | { type: "code"; text: string }
   | { type: "quote"; blocks: Block[] }
   | { type: "rule" }
-  | { type: "table"; header: Inline[][] | null; rows: Inline[][][]; align?: Align[]; widths?: number[] };
+  | { type: "table"; header: Inline[][] | null; rows: Inline[][][]; align?: Align[]; widths?: number[]; /** Alignment of numeric columns may be inferred (CSV and HTML, where the source gives none). */ autoAlign?: boolean };
 
 export type WarningLevel = "info" | "warn";
 
@@ -36,8 +51,17 @@ export interface ConversionWarning {
   message: string;
 }
 
+export interface DocMeta {
+  title?: string;
+  author?: string;
+  subject?: string;
+  keywords?: string[];
+}
+
 export interface NormalizedDoc {
   title?: string;
+  /** Core properties found in the source (HTML meta tags, Markdown front matter). */
+  meta?: DocMeta;
   blocks: Block[];
   warnings: ConversionWarning[];
   /** Characters of visible text, used for sanity checks. */
@@ -45,6 +69,7 @@ export interface NormalizedDoc {
   hasTables: boolean;
   hasLists: boolean;
   hasHeadings: boolean;
+  imageCount?: number;
 }
 
 export type SourceKind = "txt" | "md" | "html" | "csv" | "image";
@@ -58,6 +83,38 @@ export type ImageQuality = "high" | "balanced" | "small";
 export type ImageFit = "fit" | "match";
 export type Processing = "conservative" | "balanced";
 
+export type FontFamilyName = "sans" | "serif" | "mono";
+export type PageNumberStyle = "none" | "n" | "n-of-N" | "page-n-of-N";
+export type TableBorders = "grid" | "horizontal" | "none";
+export type ColumnSizing = "content" | "equal";
+export type NumberAlign = "left" | "auto";
+
+/** Typography and table styling shared by the PDF and DOCX renderers. All fields optional; see resolveStyle. */
+export interface StyleSettings {
+  fontFamily: FontFamilyName;
+  /** Body size in points (9–16). */
+  fontSize: number;
+  /** Line height multiplier (1–2). */
+  lineSpacing: number;
+  pageNumbers: PageNumberStyle;
+  headerText: string;
+  footerText: string;
+  tableZebra: boolean;
+  tableBorders: TableBorders;
+  tableHeaderFill: boolean;
+  columnSizing: ColumnSizing;
+  numberAlign: NumberAlign;
+  /** 0.8–1.4; scales table text. */
+  tableFontScale: number;
+}
+
+export interface ParseOptions {
+  csvDelimiter: "auto" | "," | ";" | "\t" | "|";
+  csvHeader: "first" | "none";
+  /** "source" keeps Markdown syntax as monospace text instead of formatting it. */
+  markdown: "formatted" | "source";
+}
+
 export interface PageSettings {
   pageSize: PageSizeName;
   /** "auto" is only meaningful for image PDFs. */
@@ -65,6 +122,7 @@ export interface PageSettings {
   margins: MarginName;
   imageQuality: ImageQuality;
   imageFit: ImageFit;
+  style?: Partial<StyleSettings>;
 }
 
 export interface PreparedImage {

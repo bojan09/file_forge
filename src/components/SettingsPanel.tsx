@@ -5,6 +5,7 @@ import type { Inspection } from "@/engine/convert";
 import type { OutputFormat, PageSettings } from "@/engine/types";
 import { useConverter } from "@/lib/converter";
 import { BoltIcon, LockIcon } from "./icons";
+import { AdvancedOptions } from "./AdvancedOptions";
 import { FileTypeIcon } from "./FileTypeIcon";
 
 const OUTPUT_META: Record<OutputFormat, { label: string; blurb: string; imageBlurb?: string }> = {
@@ -103,7 +104,7 @@ export function SettingsPanel({ insp, output, page }: { insp: Inspection; output
             value={page.orientation}
             disabled={matchSize}
             onChange={(v) => setPage({ orientation: v })}
-            options={[...(isImage ? [{ value: "auto" as const, label: "Auto" }] : []), { value: "portrait" as const, label: "Portrait" }, { value: "landscape" as const, label: "Landscape" }]}
+            options={[{ value: "auto" as const, label: "Auto" }, { value: "portrait" as const, label: "Portrait" }, { value: "landscape" as const, label: "Landscape" }]}
           />
         </Field>
 
@@ -115,7 +116,10 @@ export function SettingsPanel({ insp, output, page }: { insp: Inspection; output
           </select>
         </Field>
         {matchSize && <p className="text-xs text-muted">The page takes the image&apos;s size, with no margins.</p>}
+        {!isImage && page.orientation === "auto" && <p className="text-xs text-muted">Auto uses landscape when a table has more than 7 columns.</p>}
       </div>
+
+      {!isImage && <AdvancedOptions insp={insp} output={output} page={page} />}
 
       <div className="space-y-3">
         <button type="button" className="btn btn-primary w-full" onClick={convert} data-testid="convert-button">

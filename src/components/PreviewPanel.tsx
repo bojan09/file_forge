@@ -42,7 +42,7 @@ export function PreviewPanel({ insp }: { insp: Inspection }) {
             Raw Content
           </button>
         )}
-        <span className="ml-auto text-xs text-muted">Approximate preview</span>
+        <span className="ml-auto text-xs text-muted" data-testid="preview-note">Approximate preview: final layout may differ</span>
       </div>
       <div className="max-h-[32rem] overflow-auto rounded-lg" role="tabpanel" id={tab === "preview" ? "panel-preview" : "panel-raw"} aria-labelledby={`tab-${tab}`} tabIndex={0}>
         {tab === "preview" ? (

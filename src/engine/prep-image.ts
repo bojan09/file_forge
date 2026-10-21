@@ -139,3 +139,36 @@ export async function prepareImage(bytes: Uint8Array, type: ImageType, quality: 
     bitmap.close();
   }
 }
+
+/** True when `bytes` is a PNG variant that pdfmake decodes through a nested Worker (alpha, interlaced, 16-bit, palette transparency). */
+export function pngNeedsFlatten(bytes: Uint8Array): boolean {
+  const info = pngInfo(bytes);
+  if (info.interlace !== 0 || info.bitDepth === 16 || info.colorType === 4 || info.colorType === 6) return true;
+  if (info.colorType === 3) {
+    // Palette images carry transparency in an optional tRNS chunk.
+    for (let i = 8; i + 8 < bytes.length; ) {
+      const len = ((bytes[i]! << 24) | (bytes[i + 1]! << 16) | (bytes[i + 2]! << 8) | bytes[i + 3]!) >>> 0;
+      const name = String.fromCharCode(bytes[i + 4]!, bytes[i + 5]!, bytes[i + 6]!, bytes[i + 7]!);
+      if (name === "tRNS") return true;
+      if (name === "IDAT" || name === "IEND") break;
+      i += 12 + len;
+    }
+  }
+  return false;
+}
+
+/** Re-encodes a PNG as an opaque 8-bit non-interlaced PNG on a white background. Needs a canvas (browser or worker). */
+export async function flattenPng(bytes: Uint8Array): Promise<Uint8Array> {
+  const bitmap = await createImageBitmap(new Blob([bytes as BlobPart], { type: "image/png" }));
+  try {
+    const canvas = makeCanvas(bitmap.width, bitmap.height);
+    const ctx = canvas.getContext("2d") as CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D | null;
+    if (!ctx) throw new Error("no canvas");
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, bitmap.width, bitmap.height);
+    ctx.drawImage(bitmap, 0, 0);
+    return await encode(canvas, "image/png", 1);
+  } finally {
+    bitmap.close();
+  }
+}

@@ -33,20 +33,26 @@ Anything else (for example `.pdf`, `.docx`, `.zip`) is rejected with an explanat
 
 ### Markdown
 - Supported: headings, paragraphs, nested bullet and numbered lists, block quotes, fenced and indented code, horizontal rules, tables (with column alignment), bold, italic, strikethrough, inline code, links, autolinked URLs.
-- Raw HTML in Markdown is not interpreted. It appears as text.
-- Images are not fetched. The alt text is kept as `[image: alt]` and a warning is shown.
+- Raw HTML in Markdown is not interpreted. It appears as text and is counted in a note; `<br>` is honoured and HTML comments are removed.
+- Images embedded as `data:image/png|jpeg;base64` are included (own paragraph or lifted out of text). Linked images are never fetched: the alt text stays as `[image: alt]` and a warning says so.
+- Task lists (`- [x]`) render as ● / ○ markers without a bullet (the bundled fonts have no checkbox glyph).
+- Front matter (`title`, `author`, `description`, `keywords`) becomes document properties. `<!-- pagebreak -->`, `\newpage` start a new page.
+- "Source text" mode keeps the Markdown unformatted in a monospaced block.
 - Links are kept only for `http:`, `https:` and `mailto:`. Others become plain text.
 
 ### HTML (approximate)
 - Pipeline: inert `DOMParser` document, then DOMPurify, then a walk over a documented element subset.
-- Supported: `h1`-`h6`, `p`, `div` and sectioning elements, `ul`/`ol`/`li` (nested), `table` (`thead`, `th`, `td`), `pre`, `blockquote`, `hr`, `a`, `strong`/`b`, `em`/`i`, `s`/`del`, `code`/`kbd`/`samp`, `br`, `img` (placeholder only).
+- Supported: `h1`-`h6`, `p`, `div` and sectioning elements, `ul`/`ol`/`li` (nested), `table` (`thead`, `th`, `td`), `pre`, `blockquote`, `hr`, `a`, `strong`/`b`, `em`/`i`, `u`/`ins`, `s`/`del`, `code`/`kbd`/`samp`, `font color`, `center`, `br`, `img` with a `data:` PNG/JPEG source.
+- Inline `style` properties read: `color` (near-white is ignored), `text-align`, `font-weight`, `font-style`, `text-decoration`, `page-break-before/after`, `break-before/after`. The `align` attribute is honoured. Every other property is counted and named in a warning; class and tag rules from `<style>` are not applied.
+- Images: data-URI PNG/JPEG up to 4 MB each, 20 MB and 100 images in total, within the megapixel limit, with a valid PNG chunk structure. Anything else (remote, relative, SVG, WebP, corrupt, too large) leaves an `[image: alt]` placeholder and a warning. Images inside headings, tables or inline text stay as placeholders.
 - Never executed or fetched: scripts, event handlers, stylesheets, remote images, fonts, iframes, objects, video/audio, SVG.
 - Reported to the user as warnings, not silently dropped: ignored CSS, removed scripts, remote resources not loaded, unsupported embedded content, form controls, nested tables flattened, merged cells (`colspan`/`rowspan`) shown as single cells, unsafe links, very deep nesting.
-- Not supported: CSS layout (columns, floats, positioning), page-level styling, fonts, colors.
+- Not supported: CSS layout (columns, floats, positioning), backgrounds, fonts and sizes from CSS, page-level styling.
 
 ### CSV (approximate)
-- Delimiter auto-detected (comma, semicolon, tab and others). Quotes, escaped quotes and newlines inside cells are handled.
-- The first row is the header. Short rows are padded and the user is warned.
+- Delimiter auto-detected (blank lines ignored for detection) or set to comma, semicolon, tab or pipe; the detected/used delimiter is reported. Quotes, escaped quotes and newlines inside cells are handled.
+- The first row is the header unless "first row is data" is chosen. Short rows are padded and the user is warned. Rows of empty cells are kept; fully blank lines are skipped and counted.
+- Numeric columns are right-aligned (optional); zebra rows, header shading, borders, equal or content-based column widths and a table text scale are available.
 - Column widths come from content (weights from up to 500 rows). Font size shrinks as column count grows.
 - Warnings: more than 7 columns recommends landscape; more than 15 columns warns that text will be small; malformed quotes; very long cells.
 - Rejected: more than 20,000 rows or 40 columns (balanced mode) with a message asking the user to split the file. Nothing is silently truncated.
@@ -58,6 +64,22 @@ Anything else (for example `.pdf`, `.docx`, `.zip`) is rejected with an explanat
 - EXIF orientation is honored. A JPEG stored landscape with orientation 6 produces a portrait page.
 - Quality: High keeps original pixels (a JPEG or 8-bit non-interlaced PNG is embedded unchanged when safe; otherwise it is re-encoded losslessly or at 95%). Balanced re-encodes to JPEG (85%) with a 3000 px long side. Small uses 70% and 2000 px. Transparent images are flattened onto white in Balanced and Small.
 - Fit: "Fit to page" keeps aspect ratio inside the margins; "Match image size" makes the page the image's size (96 dpi, no margins). Orientation is "Auto" by default for images.
+
+## Styling options (PDF and DOCX)
+
+| Option | PDF | DOCX |
+|---|---|---|
+| Font family | Roboto, Liberation Serif, Liberation Mono (embedded, subset) | Calibri, Times New Roman, Courier New (not embedded; Word substitutes if missing) |
+| Body size 9 to 16 pt, line spacing 1 to 2 | yes | yes (document defaults and heading styles) |
+| Header text, footer text, page numbers | yes | yes (header/footer parts with PAGE and NUMPAGES fields) |
+| Underline, color, alignment, justify | yes | yes |
+| Page breaks | yes (a trailing break is ignored) | yes (`pageBreakBefore` on the next paragraph) |
+| Images | PNG/JPEG; alpha, interlaced and 16-bit PNGs are flattened on white | PNG/JPEG unchanged, with alt text |
+| Table borders, zebra, header fill, column sizing, numeric alignment, text scale | yes | yes |
+| Orientation Auto | landscape when a table has more than 7 columns | same |
+| Document properties | title, author, subject, keywords | core properties |
+
+Block quotes are drawn as indented gray italic text in PDF and with a left border in DOCX. Table rows are never split across pages in PDF; the header row repeats on each page in both formats.
 
 ## Fonts and scripts
 

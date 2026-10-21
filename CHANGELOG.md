@@ -1,5 +1,32 @@
 # Changelog
 
+## Phase 3: Conversion engine and document fidelity (unreleased)
+
+### Added
+- Shared document model extended with underline, text color, alignment (left/center/right/justify), page breaks, embedded images, task lists and document properties.
+- PDF: choice of Sans (Roboto), Serif (Liberation Serif) or Mono (Liberation Mono, also used for code), body size 9 to 16 pt, line spacing, header and footer text, page numbers (`1`, `1 / 5`, `Page 1 of 5`), underline and colors, alignment, page breaks, embedded PNG/JPEG images, table styling (borders, zebra, header fill, column sizing, numeric right alignment, text scale), Auto orientation (landscape for tables wider than 7 columns), document information (title, author, subject, keywords).
+- DOCX: real Heading 1 to 6 styles with the chosen font, default font and line spacing, header and footer with PAGE/NUMPAGES fields, page breaks, embedded images with alt text, table styling, core properties.
+- HTML: sanitized inline styles (color, text-align, bold, italic, underline, strike, page breaks), `<u>`, `<ins>`, `<font color>`, `<center>`, embedded data-URI images, meta tags as properties, and a warning that names every dropped CSS property.
+- Markdown: embedded data-URI images, GFM task lists (○ / ●, no bullet), front matter, `<!-- pagebreak -->` and `\newpage`, `<br>`, comment removal, and a "source text" mode.
+- CSV: delimiter override, first-row-is-header option, blank-line report, rows of empty cells kept, nothing silently dropped.
+- PDF preview viewer on the result screen: page count, previous/next, page-number input, zoom, fit width/page, fullscreen, loading and error states, lazy page rendering with a bounded number of bitmaps. DOCX results show a clearly labeled approximate preview.
+- Advanced options (collapsed by default, only options that apply to the loaded file) and persisted defaults on the Settings page.
+- Document-complexity warnings (estimated page count, many images). Parsers are loaded on demand.
+- Tests: independent readers (pdf.js, python-docx) for layout, fonts, headers/footers, tables, images, properties; parser, sanitization, CSV and Markdown suites; viewer and options E2E tests.
+
+### Fixed
+- Preview of the result: a page containing an embedded image could not be drawn in browsers lacking the newest JavaScript built-ins; the viewer now uses the pdf.js legacy build.
+- PNGs with alpha, interlacing or 16-bit depth are flattened before PDF embedding (the PDF engine would otherwise need a nested Worker); when no canvas exists the image becomes alt text with a visible check.
+- CSV: rows made only of empty cells were previously dropped by the greedy blank-line filter.
+
+### Changed
+- Result screen: preview beside the summary on wide screens; on narrow screens the order is summary, download, preview, checks.
+- Code blocks and inline code now use a real monospaced font.
+- Page numbers default to `1 / N` in DOCX as well as PDF.
+
+### Known limitations
+See `docs/PHASE_3_REPORT.md`.
+
 ## Phase 2: Batch conversion and merge (unreleased)
 
 ### Added

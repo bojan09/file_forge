@@ -1,14 +1,14 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { inspectFile, runConversion, type ConversionOutput, type Inspection } from "@/engine/convert";
-import { FileForgeError, type OutputFormat, type PageSettings, type Stage } from "@/engine/types";
-import { getSettings } from "./settings";
+import { inspectFile, reparseInspection, runConversion, type ConversionOutput, type Inspection } from "@/engine/convert";
+import { FileForgeError, type OutputFormat, type PageSettings, type ParseOptions, type Stage, type StyleSettings } from "@/engine/types";
+import { getSettings, parseOptionsFromSettings, styleFromSettings } from "./settings";
 
 export type ConverterState =
   | { phase: "idle" }
   | { phase: "inspecting"; fileName: string; step: "reading" | "parsing" }
-  | { phase: "ready"; inspection: Inspection; output: OutputFormat; page: PageSettings }
+  | { phase: "ready"; inspection: Inspection; output: OutputFormat; page: PageSettings; reparsing?: boolean }
   | { phase: "converting"; inspection: Inspection; output: OutputFormat; page: PageSettings; stage: Stage }
   | { phase: "done"; inspection: Inspection; output: OutputFormat; page: PageSettings; result: ConversionOutput; url: string }
   | { phase: "error"; origin: "inspect" | "convert"; message: string; retryable: boolean; fileName: string; inspection?: Inspection; output?: OutputFormat; page?: PageSettings };
@@ -20,6 +20,9 @@ export interface ConverterApi {
   selectFile: (file: File, extraFiles?: number) => void;
   setOutput: (o: OutputFormat) => void;
   setPage: (patch: Partial<PageSettings>) => void;
+  setStyle: (patch: Partial<StyleSettings>) => void;
+  /** Re-parses the loaded file with new options (CSV delimiter/header, Markdown mode) without re-reading it. */
+  setParseOptions: (patch: Partial<ParseOptions>) => void;
   convert: () => void;
   cancel: () => void;
   reset: () => void;
@@ -84,9 +87,14 @@ export function ConverterProvider({ children }: { children: ReactNode }) {
       set({ phase: "inspecting", fileName: file.name, step: "reading" });
       const prefs = getSettings();
       try {
-        const insp = await inspectFile(file, prefs.processing, (step) => {
-          if (id === runId.current && stateRef.current.phase === "inspecting") set({ phase: "inspecting", fileName: file.name, step });
-        });
+        const insp = await inspectFile(
+          file,
+          prefs.processing,
+          (step) => {
+            if (id === runId.current && stateRef.current.phase === "inspecting") set({ phase: "inspecting", fileName: file.name, step });
+          },
+          parseOptionsFromSettings(prefs),
+        );
         if (id !== runId.current) return;
         const outputs = insp.format.outputs;
         const output = outputs.includes(prefs.defaultOutput) ? prefs.defaultOutput : outputs[0]!;
@@ -100,6 +108,7 @@ export function ConverterProvider({ children }: { children: ReactNode }) {
             margins: prefs.margins,
             imageQuality: prefs.imageQuality,
             imageFit: prefs.imageFit,
+            style: styleFromSettings(prefs),
           },
         });
       } catch (e) {
@@ -123,6 +132,37 @@ export function ConverterProvider({ children }: { children: ReactNode }) {
     (patch: Partial<PageSettings>) => {
       const s = stateRef.current;
       if (s.phase === "ready") set({ ...s, page: { ...s.page, ...patch } });
+    },
+    [set],
+  );
+
+  const setStyle = useCallback(
+    (patch: Partial<StyleSettings>) => {
+      const s = stateRef.current;
+      if (s.phase === "ready") set({ ...s, page: { ...s.page, style: { ...s.page.style, ...patch } } });
+    },
+    [set],
+  );
+
+  const setParseOptions = useCallback(
+    async (patch: Partial<ParseOptions>) => {
+      const s = stateRef.current;
+      if (s.phase !== "ready" || s.reparsing) return;
+      const id = runId.current;
+      const options = { ...s.inspection.options, ...patch };
+      set({ ...s, reparsing: true });
+      try {
+        const inspection = await reparseInspection(s.inspection, getSettings().processing, options);
+        const cur = stateRef.current;
+        if (id !== runId.current || cur.phase !== "ready") return;
+        set({ ...cur, inspection, reparsing: false });
+      } catch (e) {
+        const cur = stateRef.current;
+        if (id !== runId.current || cur.phase !== "ready") return;
+        const d = describe(e);
+        set({ ...cur, reparsing: false });
+        setNotice(d.message);
+      }
     },
     [set],
   );
@@ -188,8 +228,8 @@ export function ConverterProvider({ children }: { children: ReactNode }) {
   );
 
   const api = useMemo<ConverterApi>(
-    () => ({ state, notice, selectFile, setOutput, setPage, convert, cancel, reset, backToSettings }),
-    [state, notice, selectFile, setOutput, setPage, convert, cancel, reset, backToSettings],
+    () => ({ state, notice, selectFile, setOutput, setPage, setStyle, setParseOptions, convert, cancel, reset, backToSettings }),
+    [state, notice, selectFile, setOutput, setPage, setStyle, setParseOptions, convert, cancel, reset, backToSettings],
   );
   return <Ctx.Provider value={api}>{children}</Ctx.Provider>;
 }

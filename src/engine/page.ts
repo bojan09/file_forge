@@ -60,3 +60,24 @@ export function absoluteWidths(weights: number[], total: number, min: number): n
   }
   return widths;
 }
+
+const NUMERIC = /^[\s$€£¥]*[-+(]?\d[\d\s.,'’]*\)?\s*(%|[A-Za-z]{0,3})?\s*$/;
+
+/** Columns whose non-empty cells (nearly) all look like numbers; used to right-align CSV/HTML data. */
+export function numericColumns(table: Extract<Block, { type: "table" }>): boolean[] {
+  const cols = Math.max(table.header?.length ?? 0, ...table.rows.map((r) => r.length), 1);
+  const sample = table.rows.slice(0, 500);
+  const out: boolean[] = [];
+  for (let c = 0; c < cols; c++) {
+    let seen = 0;
+    let numeric = 0;
+    for (const r of sample) {
+      const t = r[c] ? textOf(r[c]!).trim() : "";
+      if (!t) continue;
+      seen++;
+      if (t.length <= 24 && NUMERIC.test(t)) numeric++;
+    }
+    out.push(seen >= 2 && numeric / seen >= 0.9);
+  }
+  return out;
+}

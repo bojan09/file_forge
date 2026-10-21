@@ -198,3 +198,42 @@ export const ImagesIcon = (p: P) => (
     <path d="m21 16-5-5-8 8" />
   </Svg>
 );
+
+export const ChevronLeftIcon = (p: P) => (
+  <Svg {...p}>
+    <path d="m15 6-6 6 6 6" />
+  </Svg>
+);
+export const ZoomInIcon = (p: P) => (
+  <Svg {...p}>
+    <circle cx="11" cy="11" r="6.5" />
+    <path d="m20 20-4.2-4.2M11 8.5v5M8.5 11h5" />
+  </Svg>
+);
+export const ZoomOutIcon = (p: P) => (
+  <Svg {...p}>
+    <circle cx="11" cy="11" r="6.5" />
+    <path d="m20 20-4.2-4.2M8.5 11h5" />
+  </Svg>
+);
+export const ExpandIcon = (p: P) => (
+  <Svg {...p}>
+    <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" />
+  </Svg>
+);
+export const ShrinkIcon = (p: P) => (
+  <Svg {...p}>
+    <path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5" />
+  </Svg>
+);
+export const FitWidthIcon = (p: P) => (
+  <Svg {...p}>
+    <path d="M3 12h18M3 12l3-3M3 12l3 3M21 12l-3-3M21 12l-3 3" />
+  </Svg>
+);
+export const FitPageIcon = (p: P) => (
+  <Svg {...p}>
+    <rect x="6" y="3.5" width="12" height="17" rx="1.5" />
+    <path d="M9.5 9h5M9.5 12h5M9.5 15h3" />
+  </Svg>
+);
