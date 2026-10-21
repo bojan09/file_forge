@@ -1,0 +1,84 @@
+# Architecture
+
+FileForge is a static Next.js export. Everything below runs in the browser; there are no API routes, server actions, databases or external services.
+
+## Layers
+
+```
+UI (src/app, src/components)            React, Tailwind, no conversion logic
+ ├─ lib/converter.tsx                   single-file state machine (idle → inspecting → ready → converting → done | error)
+ ├─ lib/batch.tsx                       owns one BatchQueue and one MergeList for the whole session
+ └─ lib/settings.ts                     persisted, non-sensitive preferences (localStorage, validated on read)
+
+Engine (src/engine)                     framework-free TypeScript, unit-testable in Node
+ ├─ registry.ts                         which formats exist, their limits, fidelity labels, allowed outputs
+ ├─ validate.ts                         extension, size, magic bytes, image header dimensions, text decoding
+ ├─ parsers/*                           source → NormalizedDoc  (txt, markdown, html, csv)
+ ├─ layout-safe.ts                      keeps layout units small so PDF layout stays linear
+ ├─ coverage.ts                         glyph coverage of the bundled PDF font, PDF-specific preparation
+ ├─ render-pdf.ts, render-docx.ts       NormalizedDoc → PDF / DOCX bytes
+ ├─ render.ts                           render + verify pipeline (runs in a worker, or inline as fallback)
+ ├─ verify.ts                           structural checks on generated output
+ ├─ convert.ts                          inspectFile (validate + parse) and runConversion (render in worker + package)
+ ├─ worker-client.ts, convert.worker.ts worker execution; aborting terminates the worker
+ └─ batch/*                             queue, intake, naming, limits, ZIP, merge
+```
+
+## Single-file conversion
+
+```
+File → inspectFile  : validateFileMeta → read bytes → decodeText / checkImageBytes → parser → NormalizedDoc
+     → runConversion: registry check → (image: prepareImage on main thread) → renderJob in a Web Worker
+                      → runRender → renderTextPdf | renderDocx | renderImagePdf → verify
+     → Blob + filename + quality checks
+```
+
+The worker receives a structured-clone copy of the `NormalizedDoc` (or prepared image bytes), never the `File`. Cancelling terminates the worker, which is the only reliable way to stop a long synchronous layout.
+
+## NormalizedDoc
+
+A small block tree (`heading`, `paragraph`, `list` with nesting, `code`, `quote`, `rule`, `table`) of inline runs (bold, italic, strike, code, link). Parsers produce it; the preview, PDF renderer and DOCX renderer consume it. Anything a format can't express is dropped by the parser **with a warning** attached to the document, so the UI can report it.
+
+## Batch engine (`src/engine/batch`)
+
+`BatchQueue` is a framework-independent store (`subscribe` / `getSnapshot`, used through `useSyncExternalStore`). The real conversion is injected as `deps.convert`, so the queue logic is tested with a deterministic fake engine and, separately, with the real engine.
+
+**Item lifecycle**
+
+```
+add ─► rejected                       (unsupported, empty, binary, too large, fake image, over limits; shown with a reason)
+   └─► queued ─► converting ─► done
+                     │  └────► failed     (error message kept; retry returns to queued)
+                     └───────► cancelled  (retry/re-queue returns to queued)
+```
+
+**Rules**
+
+- Strictly one conversion at a time; items run in list order, read at the moment each one starts, so reordering, adding files, and changing shared settings affect files that have not started.
+- `runItem` refuses to start an item that is not `queued`, and `start()` is a no-op while a loop exists, so a job can never run twice.
+- Pause is "between files": the current file finishes, then the loop stops in `paused`. Resume continues. Cancelling a single file aborts only that file's `AbortController`; the loop continues. `cancelAll` marks waiting files cancelled and aborts the active one. Finished outputs are kept.
+- A failure marks that item `failed` and the loop moves on.
+- Eligibility is derived, not stored: `effectiveOutput = override ?? shared output`; if the file's format can't produce it (images → DOCX), the item is skipped with an explanation rather than failed.
+- Intake is serialized (`addFiles` chains promises) so limits hold under concurrent adds. Duplicate detection compares size first, then a SHA-256 of the contents.
+- Parsed documents live only inside one `convert` call. The queue keeps `File` handles (references) and finished output `Blob`s, so memory scales with outputs, not inputs.
+- Output file names are made unique across completed outputs (`name.pdf`, `name (2).pdf`), case-insensitively. ZIP entry names are sanitized again (no directories, traversal, reserved Windows names).
+
+**ZIP** (`zip.ts`): fflate (MIT). Blobs are read one at a time (real progress: "adding file k of n"), then compressed by fflate's worker-based `zip`, falling back to blocking `zipSync`. DOCX/images are stored uncompressed. A failure leaves the queue untouched, so individual downloads keep working.
+
+**Merge** (`merge.ts`): `MergeList` is a second store for "many images → one PDF". Images are prepared sequentially (EXIF-corrected, optional explicit crop for "fill"), then a single `images` render job builds one page per image with per-page orientation. Thumbnails are object URLs revoked on remove/clear.
+
+**Limits** (`limits.ts`): `BATCH_LIMITS[processing]` plus `effectiveBatchLimits(processing, navigator.deviceMemory)`.
+
+## Adding a new format
+
+1. **Registry**: add a `SourceFormat` in `src/engine/registry.ts` (extensions, MIME types, byte limit, allowed outputs, fidelity labels, notes). The Formats page, file picker `accept`, batch eligibility and the settings copy all read from it.
+2. **Parser**: add `src/engine/parsers/<name>.ts` returning a `NormalizedDoc` (add warnings for everything dropped). Wire it into the `switch` in `inspectFile` (`convert.ts`). If the format needs new structures, extend `Block`/`Inline` in `types.ts` and teach both renderers (and the DocPreview).
+3. **Intake**: if a cheap content check is possible (magic bytes, binary check), add it to `validateIntake` in `batch/intake.ts`.
+4. **Output**: for a new *output* format, add a renderer that consumes `NormalizedDoc`, a `verify*` function, and a branch in `runRender`; add the format to `OutputFormat`, the registry `outputs`, and the settings UI.
+5. **Tests**: parser unit tests, a render test checked with an independent reader, a fixture in `tests/fixtures`, and an E2E case. Update `docs/FORMAT_COMPATIBILITY.md`.
+
+No change to the queue, ZIP or UI is needed for a new input format.
+
+## Privacy boundaries
+
+Conversion code never touches the network. The CSP (`vercel.json` and a meta fallback) sets `connect-src 'self'`; E2E tests record all requests during full flows and assert there are no external hosts, no non-GET requests and no request bodies.

@@ -1,3 +1,4 @@
+import { sanitizeFileName, splitName } from "./batch/naming";
 import { prepareImage } from "./prep-image";
 import { getFormat, type SourceFormat } from "./registry";
 import { parseCsv } from "./parsers/csv";
@@ -11,6 +12,8 @@ import { FileForgeError, type ConversionWarning, type NormalizedDoc, type Output
 const PREVIEW_CHARS = 20000;
 
 export interface Inspection {
+  /** The original File handle (a reference, not a copy), kept so the file can move into a batch. */
+  file: File;
   name: string;
   sizeBytes: number;
   format: SourceFormat;
@@ -28,7 +31,7 @@ export async function inspectFile(file: File, processing: Processing, onStep?: (
   const { format, extension } = validateFileMeta(file);
   const bytes = new Uint8Array(await file.arrayBuffer());
   onStep?.("parsing");
-  const base = { name: file.name, sizeBytes: file.size, format, kind: format.id, extension };
+  const base = { file, name: file.name, sizeBytes: file.size, format, kind: format.id, extension };
 
   if (format.id === "image") {
     const info = checkImageBytes(bytes, extension, processing);
@@ -77,14 +80,8 @@ export function outputsFor(insp: Pick<Inspection, "format">): OutputFormat[] {
 }
 
 export function safeBaseName(name: string): string {
-  const dot = name.lastIndexOf(".");
-  const base = (dot > 0 ? name.slice(0, dot) : name)
-    .replace(/[\\/:*?"<>|\u0000-\u001f]+/g, "_")
-    .replace(/\s+/g, " ")
-    .trim()
-    .replace(/^\.+/, "")
-    .slice(0, 120);
-  return base || "converted";
+  const { stem } = splitName(name);
+  return sanitizeFileName(stem, "converted");
 }
 
 export interface ConversionOutput {
@@ -125,7 +122,7 @@ export async function runConversion(insp: Inspection, opts: ConversionOptions): 
   }
 
   const blob = new Blob([result.bytes as BlobPart], { type: result.mime });
-  const filename = `${title}${suffix.replace(/[\\/:*?"<>|\u0000-\u001f]+/g, "")}.${result.extension}`;
+  const filename = sanitizeFileName(`${title}${suffix}.${result.extension}`, "converted");
   return {
     blob,
     filename,

@@ -49,7 +49,7 @@ function blocksToContent(blocks: Block[], contentWidth: number): Content[] {
         out.push(textNode(b.runs, { fontSize: HEADING_SIZE[b.level], bold: true, margin: [0, b.level <= 2 ? 14 : 10, 0, 6], headlineLevel: b.level, keepWithNext: true } as Record<string, unknown>));
         break;
       case "paragraph":
-        out.push(textNode(b.runs, { margin: [0, 0, 0, 8], lineHeight: 1.3 }));
+        out.push(textNode(b.runs, { margin: [0, 0, 0, b.cont ? 0 : 8], lineHeight: 1.3 }));
         break;
       case "list": {
         const items = b.items.map((it) => {
@@ -185,6 +185,43 @@ export async function renderImagePdf(image: PreparedImage, settings: PageSetting
   };
   const bytes = await pdfMake.createPdf(def).getBuffer();
   return { bytes: new Uint8Array(bytes), pageCount: 1 };
+}
+
+/**
+ * One image per page, in order. Pages use a named paper size with per-page orientation, so
+ * portrait and landscape images can share a document. Images are centered inside the margins with
+ * their aspect ratio preserved; "fill" images are cropped to the content area beforehand (see prepareImage).
+ */
+export async function renderImagesPdf(images: PreparedImage[], settings: PageSettings, title: string): Promise<PdfOutput> {
+  ensureFonts();
+  const named = settings.pageSize;
+  const orientationOf = (img: PreparedImage): Orientation => (settings.orientation === "auto" ? (img.width > img.height ? "landscape" : "portrait") : settings.orientation);
+  const imageMap: Record<string, string> = {};
+  const content: Content[] = images.map((img, i) => {
+    const o = orientationOf(img);
+    const dims = pageDims(settings, o);
+    // 0.5% slack keeps the image from spilling a hair past the content box and creating an empty page.
+    const scale = Math.min(dims.contentWidth / img.width, dims.contentHeight / img.height) * 0.995;
+    const w = img.width * scale;
+    const h = img.height * scale;
+    imageMap[`img${i}`] = toDataUri(img.bytes, img.mime);
+    const node: Record<string, unknown> = { image: `img${i}`, width: w, height: h, margin: [(dims.contentWidth - w) / 2, (dims.contentHeight - h) / 2, 0, 0] };
+    if (i > 0) {
+      node.pageBreak = "before";
+      node.pageOrientation = o;
+    }
+    return node as unknown as Content;
+  });
+  const def: TDocumentDefinitions = {
+    info: { title, creator: "FileForge", producer: "FileForge" },
+    pageSize: named,
+    pageOrientation: orientationOf(images[0]!),
+    pageMargins: pageDims(settings, "portrait").margin,
+    content,
+    images: imageMap,
+  };
+  const bytes = await pdfMake.createPdf(def).getBuffer();
+  return { bytes: new Uint8Array(bytes), pageCount: images.length };
 }
 
 export { textOf };

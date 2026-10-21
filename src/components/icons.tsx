@@ -138,3 +138,63 @@ export const TrashIcon = (p: P) => (
     <path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3" />
   </Svg>
 );
+export const PlusIcon = (p: P) => (
+  <Svg {...p}>
+    <path d="M12 5v14M5 12h14" />
+  </Svg>
+);
+export const ArrowUpIcon = (p: P) => (
+  <Svg {...p}>
+    <path d="M12 19V5m0 0-6 6m6-6 6 6" />
+  </Svg>
+);
+export const ArrowDownIcon = (p: P) => (
+  <Svg {...p}>
+    <path d="M12 5v14m0 0-6-6m6 6 6-6" />
+  </Svg>
+);
+export const SlidersIcon = (p: P) => (
+  <Svg {...p}>
+    <path d="M4 7h10M18 7h2M4 17h2M10 17h10" />
+    <circle cx="16" cy="7" r="2" />
+    <circle cx="8" cy="17" r="2" />
+  </Svg>
+);
+export const PauseIcon = (p: P) => (
+  <Svg {...p}>
+    <path d="M9 5v14M15 5v14" />
+  </Svg>
+);
+export const PlayIcon = (p: P) => (
+  <Svg {...p}>
+    <path d="M7 4.5v15l12-7.5-12-7.5Z" />
+  </Svg>
+);
+export const StopIcon = (p: P) => (
+  <Svg {...p}>
+    <rect x="6" y="6" width="12" height="12" rx="2" />
+  </Svg>
+);
+export const GripIcon = (p: P) => (
+  <Svg {...p}>
+    <circle cx="9" cy="6" r="1" />
+    <circle cx="15" cy="6" r="1" />
+    <circle cx="9" cy="12" r="1" />
+    <circle cx="15" cy="12" r="1" />
+    <circle cx="9" cy="18" r="1" />
+    <circle cx="15" cy="18" r="1" />
+  </Svg>
+);
+export const ArchiveIcon = (p: P) => (
+  <Svg {...p}>
+    <rect x="3" y="4" width="18" height="5" rx="1.5" />
+    <path d="M5 9v9a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V9M10 13h4" />
+  </Svg>
+);
+export const ImagesIcon = (p: P) => (
+  <Svg {...p}>
+    <rect x="3" y="5" width="18" height="14" rx="2" />
+    <circle cx="9" cy="10" r="1.6" />
+    <path d="m21 16-5-5-8 8" />
+  </Svg>
+);

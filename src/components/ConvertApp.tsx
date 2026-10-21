@@ -1,7 +1,10 @@
 "use client";
 
 import { useEffect } from "react";
+import { useBatchContext, useBatchQueue, useMergeList } from "@/lib/batch";
 import { useConverter } from "@/lib/converter";
+import { BatchWorkspace } from "./batch/BatchWorkspace";
+import { MergeWorkspace } from "./batch/MergeWorkspace";
 import { ErrorView } from "./ErrorView";
 import { FileTypeIcon } from "./FileTypeIcon";
 import { HomeView } from "./HomeView";
@@ -37,14 +40,31 @@ function InspectingView() {
   );
 }
 
-/** Switches between the upload, workspace, progress, result and error screens. */
+/** Switches between the upload, single-file workspace, batch, merge, progress, result and error screens. */
 export function ConvertApp() {
   const { state, selectFile, notice } = useConverter();
-  // Each phase is a new screen: start it at the top so headings and confirmations aren't hidden under the sticky header.
-  useEffect(() => window.scrollTo(0, 0), [state.phase]);
+  const { queue, mode, setMode, merge } = useBatchContext();
+  const batch = useBatchQueue().snap;
+  const mergeSnap = useMergeList().snap;
+  const batchActive = batch.items.length > 0;
+  const mergeActive = mergeSnap.items.length > 0;
+  // Each screen starts at the top so headings and confirmations aren't hidden under the sticky header.
+  const screen = state.phase === "idle" ? (batchActive ? "batch" : mergeActive ? "merge" : "home") : state.phase;
+  useEffect(() => window.scrollTo(0, 0), [screen]);
+
+  /** One file keeps the single-file flow; several files (or merge mode) go to the batch or merge workspace. */
+  const onFiles = (files: File[]) => {
+    if (mode === "merge") void merge.addFiles(files);
+    else if (files.length === 1) selectFile(files[0]!);
+    else void queue.addFiles(files);
+  };
+
+  if (state.phase === "idle") {
+    if (batchActive) return <BatchWorkspace />;
+    if (mergeActive) return <MergeWorkspace />;
+    return <HomeView onFiles={onFiles} notice={notice} mode={mode} onMode={setMode} />;
+  }
   switch (state.phase) {
-    case "idle":
-      return <HomeView onFile={selectFile} notice={notice} />;
     case "inspecting":
       return <InspectingView />;
     case "ready":
@@ -54,6 +74,6 @@ export function ConvertApp() {
     case "done":
       return <ResultView />;
     case "error":
-      return state.origin === "inspect" ? <HomeView onFile={selectFile} error={state.message} /> : <ErrorView />;
+      return state.origin === "inspect" ? <HomeView onFiles={onFiles} error={state.message} mode={mode} onMode={setMode} /> : <ErrorView />;
   }
 }

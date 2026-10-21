@@ -1,6 +1,6 @@
 import { prepareForPdf, MAX_UNSUPPORTED_RATIO } from "./coverage";
 import { renderDocx } from "./render-docx";
-import { renderImagePdf, renderTextPdf } from "./render-pdf";
+import { renderImagePdf, renderImagesPdf, renderTextPdf } from "./render-pdf";
 import { verifyDocx, verifyPdf } from "./verify";
 import { FileForgeError, type RenderJob, type RenderResult, type Stage } from "./types";
 
@@ -8,12 +8,28 @@ import { FileForgeError, type RenderJob, type RenderResult, type Stage } from ".
  * Pure rendering pipeline. Runs inside a Web Worker in the browser (so it can be cancelled by
  * terminating the worker) and directly on the main thread as a fallback and in tests.
  */
+function Buffer_latin1(b: Uint8Array): string {
+  let s = "";
+  for (let i = 0; i < b.length; i += 0x8000) s += String.fromCharCode(...b.subarray(i, i + 0x8000));
+  return s;
+}
+
 export async function runRender(job: RenderJob, onStage: (s: Stage) => void = () => {}): Promise<RenderResult> {
   if (job.kind === "image") {
     onStage("rendering");
     const pdf = await renderImagePdf(job.image, job.settings, job.title);
     onStage("verifying");
     return { bytes: pdf.bytes, mime: "application/pdf", extension: "pdf", pageCount: pdf.pageCount, checks: verifyPdf(pdf.bytes, { pageCount: pdf.pageCount, kind: "image" }) };
+  }
+
+  if (job.kind === "images") {
+    onStage("rendering");
+    const pdf = await renderImagesPdf(job.images, job.settings, job.title);
+    onStage("verifying");
+    const checks = verifyPdf(pdf.bytes, { pageCount: pdf.pageCount, kind: "image" });
+    const embedded = (Buffer_latin1(pdf.bytes).match(/\/Subtype\s*\/Image\b/g) ?? []).length;
+    checks.push({ id: "image-count", label: `All ${job.images.length} images are embedded, one per page`, passed: embedded >= job.images.length && pdf.pageCount === job.images.length });
+    return { bytes: pdf.bytes, mime: "application/pdf", extension: "pdf", pageCount: pdf.pageCount, checks };
   }
 
   if (job.output === "pdf") {

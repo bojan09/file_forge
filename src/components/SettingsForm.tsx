@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
+import { BATCH_LIMITS } from "@/engine/batch/limits";
 import { PROCESSING_LIMITS } from "@/engine/registry";
 import { resetSettings, updateSettings, useSettings, type AccentName, type Settings } from "@/lib/settings";
 import { TrashIcon } from "./icons";
@@ -104,6 +105,9 @@ export function SettingsForm() {
         <Radio label="Mode" name="processing" value={s.processing} options={[{ value: "balanced", label: "Balanced" }, { value: "conservative", label: "Conservative" }]} />
         <p className="text-sm leading-relaxed text-muted">
           Balanced allows up to {PROCESSING_LIMITS.balanced.imageMaxMegapixels} MP images, {PROCESSING_LIMITS.balanced.csvMaxRows.toLocaleString()} CSV rows and {PROCESSING_LIMITS.balanced.csvMaxCols} columns. Conservative lowers those to {PROCESSING_LIMITS.conservative.imageMaxMegapixels} MP, {PROCESSING_LIMITS.conservative.csvMaxRows.toLocaleString()} rows and {PROCESSING_LIMITS.conservative.csvMaxCols} columns (and caps HTML complexity) to protect low-memory devices.
+        </p>
+        <p className="text-sm leading-relaxed text-muted" data-testid="batch-limits-copy">
+          Batch limits: balanced allows {BATCH_LIMITS.balanced.maxFiles} files and {BATCH_LIMITS.balanced.maxTotalBytes / 1048576} MB combined per batch; conservative allows {BATCH_LIMITS.conservative.maxFiles} files and {BATCH_LIMITS.conservative.maxTotalBytes / 1048576} MB. Files always convert one at a time. On devices that report 2 GB of memory or less, balanced uses the conservative batch limits automatically.
         </p>
       </Card>
 

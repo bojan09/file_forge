@@ -82,3 +82,16 @@ Only checks that actually ran are shown.
 - DOCX: non-empty; valid ZIP with Word parts; text stored as Word text runs with no media; first source text found in `document.xml`; tables, heading styles and numbering present when the source had them.
 
 These checks inspect structure. They cannot judge visual quality, and the result screen says so.
+
+## Batch and merge (Phase 2)
+
+- The batch queue uses exactly the matrix above; nothing new is convertible. Eligibility is evaluated per file against its selected output. Images selected for DOCX are skipped with the reason "Images can only be converted to PDF", and are not counted as failures.
+- Per-file settings that are shown: output format (all files); paper size, orientation and margins (all files, PDF and DOCX); image quality and image placement (images only).
+- Batch limits (balanced / conservative): 10 / 5 files and 50 / 25 MB combined input, in addition to the per-format size limits. Rejected files stay listed with a reason (up to 20 rows).
+- Duplicates are exact content matches (same size and SHA-256); a same-named file with different content is kept.
+- Output names are unique per batch (`name.pdf`, `name (2).pdf`, case-insensitive). ZIP entries are sanitized: no folders (except the optional `originals/`), no `..`, no reserved Windows names.
+- **Merge images to one PDF**: JPG, PNG, WebP only; one image per page in list order; page size A4/Letter/Legal; orientation auto (per image), portrait or landscape; margins narrow/normal/wide; placement "Fit within margins" (whole image, proportions kept) or "Fill the page area" (centered crop, only when chosen); quality high/balanced/small; EXIF orientation honored; transparency shown on white. The PDF contains pictures only: it is not searchable and there is no OCR. "Page matches image size" is available for single images but not for merged PDFs.
+
+## Large input behavior (Phase 2 fix)
+
+Very long paragraphs and long unbroken runs are split into smaller layout units before PDF layout so conversion time stays roughly linear. No characters are added or removed. A line may wrap slightly early where a long paragraph was split (about every 3,000 characters). DOCX output is not split.

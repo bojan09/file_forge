@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { BottomNav } from "@/components/BottomNav";
 import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
+import { BatchProvider } from "@/lib/batch";
 import { ConverterProvider } from "@/lib/converter";
 import { THEME_INIT_SCRIPT, ThemeProvider } from "@/lib/theme";
 import "./globals.css";
@@ -52,12 +53,14 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         </a>
         <ThemeProvider>
           <ConverterProvider>
+            <BatchProvider>
             <Header />
             <main id="main" tabIndex={-1} className="mx-auto min-h-[60vh] max-w-6xl px-4 pb-24 pt-6 outline-none sm:px-6 md:pb-6 md:pt-10">
               {children}
             </main>
             <Footer />
             <BottomNav />
+            </BatchProvider>
           </ConverterProvider>
         </ThemeProvider>
       </body>

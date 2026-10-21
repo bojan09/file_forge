@@ -72,7 +72,12 @@ async function encode(canvas: AnyCanvas, mime: string, quality: number): Promise
  * Produces bytes the PDF engine can embed. Originals are passed through untouched when that is
  * lossless and safe; everything else is decoded (honoring EXIF rotation) and re-encoded.
  */
-export async function prepareImage(bytes: Uint8Array, type: ImageType, quality: ImageQuality, signal?: AbortSignal): Promise<PreparedImage> {
+export interface PrepareOptions {
+  /** Called with the displayed (EXIF-corrected) size; return a target width/height ratio to center-crop to, or null for no crop. */
+  crop?: (width: number, height: number) => number | null;
+}
+
+export async function prepareImage(bytes: Uint8Array, type: ImageType, quality: ImageQuality, signal?: AbortSignal, opts: PrepareOptions = {}): Promise<PreparedImage> {
   const abortCheck = () => {
     if (signal?.aborted) throw new DOMException("Cancelled", "AbortError");
   };
@@ -88,7 +93,8 @@ export async function prepareImage(bytes: Uint8Array, type: ImageType, quality: 
     abortCheck();
     const { width: srcW, height: srcH } = bitmap;
 
-    if (quality === "high") {
+    const cropAspect = opts.crop?.(srcW, srcH) ?? null;
+    if (quality === "high" && cropAspect === null) {
       if (type === "jpeg") {
         const info = jpegInfo(bytes);
         if (info.orientation === 1 && info.components !== 4) return { bytes, mime: "image/jpeg", width: srcW, height: srcH };
@@ -98,9 +104,23 @@ export async function prepareImage(bytes: Uint8Array, type: ImageType, quality: 
       }
     }
 
-    const scale = Math.min(1, MAX_DIM[quality] / Math.max(srcW, srcH));
-    const w = Math.max(1, Math.round(srcW * scale));
-    const h = Math.max(1, Math.round(srcH * scale));
+    // Source rectangle: the whole bitmap, or a centered crop when an explicit "fill" crop was requested.
+    let sx = 0;
+    let sy = 0;
+    let sw = srcW;
+    let sh = srcH;
+    if (cropAspect !== null) {
+      if (srcW / srcH > cropAspect) {
+        sw = Math.max(1, Math.round(srcH * cropAspect));
+        sx = Math.round((srcW - sw) / 2);
+      } else {
+        sh = Math.max(1, Math.round(srcW / cropAspect));
+        sy = Math.round((srcH - sh) / 2);
+      }
+    }
+    const scale = Math.min(1, MAX_DIM[quality] / Math.max(sw, sh));
+    const w = Math.max(1, Math.round(sw * scale));
+    const h = Math.max(1, Math.round(sh * scale));
     const canvas = makeCanvas(w, h);
     const ctx = canvas.getContext("2d") as CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D | null;
     if (!ctx) throw new FileForgeError("encode-failed", "Canvas isn't available in this browser.", true);
@@ -111,7 +131,7 @@ export async function prepareImage(bytes: Uint8Array, type: ImageType, quality: 
       ctx.fillRect(0, 0, w, h);
     }
     ctx.imageSmoothingQuality = "high";
-    ctx.drawImage(bitmap, 0, 0, w, h);
+    ctx.drawImage(bitmap, sx, sy, sw, sh, 0, 0, w, h);
     abortCheck();
     const out = await encode(canvas, lossless ? "image/png" : "image/jpeg", JPEG_Q[quality]);
     return { bytes: out, mime: lossless ? "image/png" : "image/jpeg", width: w, height: h };

@@ -20,7 +20,8 @@ export type Align = "left" | "center" | "right";
 
 export type Block =
   | { type: "heading"; level: 1 | 2 | 3 | 4 | 5 | 6; runs: Inline[] }
-  | { type: "paragraph"; runs: Inline[] }
+  /** `cont` marks a paragraph continued from the previous block (used when long paragraphs are split for layout). */
+  | { type: "paragraph"; runs: Inline[]; cont?: boolean }
   | { type: "list"; ordered: boolean; items: ListItem[] }
   | { type: "code"; text: string }
   | { type: "quote"; blocks: Block[] }
@@ -75,7 +76,8 @@ export interface PreparedImage {
 
 export type RenderJob =
   | { kind: "doc"; doc: NormalizedDoc; output: OutputFormat; settings: PageSettings; title: string }
-  | { kind: "image"; image: PreparedImage; settings: PageSettings; title: string };
+  | { kind: "image"; image: PreparedImage; settings: PageSettings; title: string }
+  | { kind: "images"; images: PreparedImage[]; settings: PageSettings; title: string };
 
 export type Stage = "reading" | "rendering" | "verifying";
 

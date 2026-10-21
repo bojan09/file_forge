@@ -53,6 +53,25 @@ writeFileSync(`${dir}/rotated.jpg`, withOrientation(jpg, 6));
 writeFileSync(`${dir}/image.png`, await canvasImage(320, 200, "image/png"));
 writeFileSync(`${dir}/image.webp`, await canvasImage(300, 300, "image/webp", 0.9));
 
+// PNG with a fully transparent background and an opaque red disc, to verify alpha is flattened on white.
+const alphaB64 = await page.evaluate(async () => {
+  const c = document.createElement("canvas");
+  c.width = 240;
+  c.height = 240;
+  const g = c.getContext("2d");
+  g.clearRect(0, 0, 240, 240);
+  g.fillStyle = "#e11d48";
+  g.beginPath();
+  g.arc(120, 120, 80, 0, Math.PI * 2);
+  g.fill();
+  const blob = await new Promise((r) => c.toBlob(r, "image/png"));
+  const buf = new Uint8Array(await blob.arrayBuffer());
+  let s = "";
+  for (let i = 0; i < buf.length; i += 0x8000) s += String.fromCharCode(...buf.subarray(i, i + 0x8000));
+  return btoa(s);
+});
+writeFileSync(`${dir}/alpha.png`, Buffer.from(alphaB64, "base64"));
+
 // Declares 20000x20000 (400 MP) in the PNG header: must be rejected from the header alone.
 function crc32(buf) {
   let c, crc = 0xffffffff;

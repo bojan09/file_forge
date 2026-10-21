@@ -43,3 +43,17 @@ Screenshots of the implementation, captured by `tests/e2e/screenshots.spec.ts` i
 
 - No pixel-diff against the reference was run. Fidelity ratings above are visual comparisons by the author of this work.
 - Real iOS Safari and physical Android devices were not available. Mobile screens use Chromium with the Pixel 7 profile.
+
+## Phase 2 screens (extensions of the reference)
+
+The reference has no batch or merge screens. They reuse the same tokens, cards, buttons, badges, icons and motion:
+
+| Screen | Screenshot | Notes |
+|---|---|---|
+| Start screen with "Merge images" mode | `desktop-dark-4-home-merge-mode.png` | Mode switch above the drop zone, built from the existing choice tiles |
+| Batch queue | `desktop-dark-5-batch-queue.png`, `mobile-dark-5-batch-queue.png` | Rounded cards per file, status badges, summary card with the same gradient primary button; two columns on desktop, summary first on mobile |
+| Batch complete with expanded details and ZIP panel | `desktop-dark-6-batch-complete.png` | Done rows use the reference's success tint; quality checks reuse the Quality Check list style |
+| Merge workspace | `desktop-dark-7-merge.png` | Page frames show placement; the same settings card style |
+| Merge result | `desktop-dark-8-merge-result.png` | Success panel with the same check icon and Download button |
+
+Light-theme and mobile equivalents are alongside (`*-light-*`, `mobile-*`). Deviations: progress for the whole batch is a determinate bar based on files finished (a real count, not a time estimate); active files use the indeterminate bar from Phase 1 with their real stage names.

@@ -1,6 +1,8 @@
 "use client";
 
+import type { HomeMode } from "@/lib/batch";
 import { AlertIcon, BoltIcon, DeviceIcon, InfoIcon, ShieldIcon } from "./icons";
+import { ModeSwitch } from "./ModeSwitch";
 import { FormatList } from "./FormatList";
 import { HeroIllustration } from "./HeroIllustration";
 import { UploadZone, useFilePicker } from "./UploadZone";
@@ -11,8 +13,8 @@ const ASSURANCES = [
   { icon: DeviceIcon, title: "Any modern browser", text: "Desktop, tablet, mobile" },
 ];
 
-export function HomeView({ onFile, error, notice }: { onFile: (file: File, extra: number) => void; error?: string | null; notice?: string | null }) {
-  const { inputRef, pick, onChange } = useFilePicker(onFile);
+export function HomeView({ onFiles, error, notice, mode = "convert", onMode }: { onFiles: (files: File[]) => void; error?: string | null; notice?: string | null; mode?: HomeMode; onMode?: (m: HomeMode) => void }) {
+  const { inputRef, pick, onChange } = useFilePicker(onFiles);
   return (
     <div className="enter">
       <div className="grid items-start gap-8 lg:grid-cols-[1.05fr_1fr] lg:gap-10">
@@ -42,7 +44,8 @@ export function HomeView({ onFile, error, notice }: { onFile: (file: File, extra
               <p>{notice}</p>
             </div>
           )}
-          <UploadZone onFile={onFile} />
+          {onMode && <ModeSwitch mode={mode} onChange={onMode} />}
+          <UploadZone onFiles={onFiles} mode={mode} accept={mode === "merge" ? ".jpg,.jpeg,.png,.webp" : undefined} />
         </section>
 
         <section aria-label="Supported conversions" className="card p-4 sm:p-5">

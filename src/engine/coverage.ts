@@ -1,4 +1,5 @@
 import { FONT_RANGES } from "./font-coverage";
+import { hardenBlocks } from "./layout-safe";
 import type { Block, ConversionWarning, Inline, NormalizedDoc } from "./types";
 
 function supported(cp: number): boolean {
@@ -88,7 +89,7 @@ export function measureCoverage(doc: NormalizedDoc): CoverageReport {
 /** Returns a PDF-safe copy of the document plus a warning describing any replacements. */
 export function prepareForPdf(doc: NormalizedDoc): { doc: NormalizedDoc; report: CoverageReport; warning?: ConversionWarning } {
   const report: CoverageReport = { total: 0, unsupported: 0, samples: [] };
-  const blocks = doc.blocks.map((b) => mapBlock(b, report));
+  const blocks = hardenBlocks(doc.blocks.map((b) => mapBlock(b, report)));
   const warning = report.unsupported
     ? {
         code: "pdf-glyphs",
