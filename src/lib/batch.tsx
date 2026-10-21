@@ -6,6 +6,7 @@ import { currentDeviceMemory, effectiveBatchLimits } from "@/engine/batch/limits
 import { MergeList, createDefaultMergeDeps, defaultMergeSettings, type MergeSnapshot } from "@/engine/batch/merge";
 import { BatchQueue } from "@/engine/batch/queue";
 import type { BatchSnapshot } from "@/engine/batch/types";
+import { setBusy } from "./activity";
 import { getSettings, parseOptionsFromSettings, styleFromSettings, useSettings } from "./settings";
 
 export type HomeMode = "convert" | "merge";
@@ -40,6 +41,21 @@ export function BatchProvider({ children }: { children: ReactNode }) {
   const settings = useSettings();
   const [stores] = useState(create);
   const [mode, setMode] = useState<HomeMode>("convert");
+
+  useEffect(() => {
+    const sync = () => {
+      const run = stores.queue.getSnapshot().run;
+      setBusy("batch", run === "running" || run === "pausing");
+      const phase = stores.merge.getSnapshot().phase;
+      setBusy("merge", phase === "preparing" || phase === "rendering" || phase === "verifying");
+    };
+    const u1 = stores.queue.subscribe(sync);
+    const u2 = stores.merge.subscribe(sync);
+    return () => {
+      u1();
+      u2();
+    };
+  }, [stores]);
 
   useEffect(() => {
     const { limits } = effectiveBatchLimits(settings.processing, currentDeviceMemory());

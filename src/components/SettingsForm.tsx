@@ -3,6 +3,7 @@
 import { useState, type ReactNode } from "react";
 import { BATCH_LIMITS } from "@/engine/batch/limits";
 import { PROCESSING_LIMITS } from "@/engine/registry";
+import { clearOfflineData, usePwa } from "@/lib/pwa";
 import { resetSettings, updateSettings, useSettings, type AccentName, type Settings } from "@/lib/settings";
 import { TrashIcon } from "./icons";
 
@@ -79,6 +80,55 @@ function Toggle({ id, label, name, checked }: { id: string; label: string; name:
       <input id={id} type="checkbox" className="size-4 accent-[var(--accent)]" checked={checked} onChange={(e) => updateSettings({ [name]: e.target.checked })} />
       {label}
     </label>
+  );
+}
+
+function OfflineCard() {
+  const { offline, progress, online, canInstall, installed, install } = usePwa();
+  const [cleared, setCleared] = useState(false);
+  const status =
+    offline === "ready"
+      ? "Ready. After this first visit every conversion engine, font and page is stored on this device, so FileForge works without a connection."
+      : offline === "caching"
+        ? `Preparing offline use: ${progress ? `${progress.done} of ${progress.total} files stored` : "downloading"}. Stay on this page until it finishes.`
+        : offline === "data-saver"
+          ? "Offline use is off because your device asked to save data (the offline copy is about 8 MB). Turn off Data Saver and reload to enable it."
+          : offline === "unsupported"
+          ? "Offline use isn't available here (the browser blocks service workers, or this is a development build). Everything else works while you're online."
+          : "Checking…";
+  return (
+    <Card title="Offline use and install">
+      <p className="text-sm leading-relaxed text-muted" role="status" data-testid="offline-status" data-state={offline}>
+        {status}
+      </p>
+      <p className="text-sm leading-relaxed text-muted">
+        Only the app itself is stored (pages, scripts, fonts, icons). Your files, results and previews are never cached; they stay in memory and disappear when you close or reset the page. {online ? "" : "You are offline right now."}
+      </p>
+      <div className="flex flex-wrap gap-3">
+        {canInstall && (
+          <button type="button" className="btn btn-primary" onClick={() => void install()} data-testid="install-app">
+            Install FileForge
+          </button>
+        )}
+        {installed && <span className="badge badge-success">Installed</span>}
+        <button
+          type="button"
+          className="btn btn-secondary"
+          onClick={() => {
+            void clearOfflineData().then(() => setCleared(true));
+          }}
+          data-testid="clear-offline"
+        >
+          <TrashIcon size={17} /> Remove offline copy
+        </button>
+      </div>
+      {!canInstall && !installed && (
+        <p className="text-sm leading-relaxed text-muted">To install: in Chrome or Edge use the install icon in the address bar; in Safari on iPhone or iPad choose Share, then Add to Home Screen.</p>
+      )}
+      <p role="status" className="text-sm text-success">
+        {cleared ? "Offline copy removed. Reload the page to download it again." : ""}
+      </p>
+    </Card>
   );
 }
 
@@ -159,6 +209,8 @@ export function SettingsForm() {
           Batch limits: balanced allows {BATCH_LIMITS.balanced.maxFiles} files and {BATCH_LIMITS.balanced.maxTotalBytes / 1048576} MB combined per batch; conservative allows {BATCH_LIMITS.conservative.maxFiles} files and {BATCH_LIMITS.conservative.maxTotalBytes / 1048576} MB. Files always convert one at a time. On devices that report 2 GB of memory or less, balanced uses the conservative batch limits automatically.
         </p>
       </Card>
+
+      <OfflineCard />
 
       <Card title="Stored data">
         <p className="text-sm text-muted">Preferences live in this browser&apos;s local storage. Files are never stored.</p>

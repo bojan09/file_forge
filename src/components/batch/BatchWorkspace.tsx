@@ -19,6 +19,12 @@ export function BatchWorkspace() {
   const list = useRef<HTMLUListElement>(null);
   const title = useRef<HTMLHeadingElement>(null);
   const [confirmClear, setConfirmClear] = useState(false);
+  const clearTrigger = useRef<HTMLButtonElement>(null);
+  // Closing the confirmation (Keep, or Escape) puts focus back on the button that opened it.
+  const cancelClear = () => {
+    setConfirmClear(false);
+    requestAnimationFrame(() => clearTrigger.current?.focus());
+  };
   const [dropping, setDropping] = useState(false);
   const [dragId, setDragId] = useState<string | null>(null);
   const [overId, setOverId] = useState<string | null>(null);
@@ -47,18 +53,18 @@ export function BatchWorkspace() {
           </button>
           <input ref={pickInput} type="file" multiple accept={ACCEPT_ATTR} className="sr-only" tabIndex={-1} aria-hidden="true" onChange={onPickChange} data-testid="batch-input" />
           {!confirmClear ? (
-            <button type="button" className="btn btn-ghost btn-sm" onClick={() => setConfirmClear(true)} data-testid="clear-queue">
+            <button ref={clearTrigger} type="button" className="btn btn-ghost btn-sm" onClick={() => setConfirmClear(true)} data-testid="clear-queue">
               <TrashIcon size={15} /> Clear queue
             </button>
           ) : (
-            <div role="alertdialog" aria-label="Confirm clearing the queue" className="enter flex flex-wrap items-center gap-2 rounded-xl border border-danger/40 bg-danger/10 px-3 py-1.5 text-sm" data-testid="clear-confirm">
+            <div role="alertdialog" aria-label="Confirm clearing the queue" onKeyDown={(e) => e.key === "Escape" && cancelClear()} className="enter flex flex-wrap items-center gap-2 rounded-xl border border-danger/40 bg-danger/10 px-3 py-1.5 text-sm" data-testid="clear-confirm">
               <span>
                 Remove all {snap.items.length} file{snap.items.length > 1 ? "s" : ""}{running ? " and stop the current conversion" : ""}?
               </span>
               <button type="button" className="btn btn-sm btn-secondary" autoFocus onClick={() => (queue.clear(), setConfirmClear(false), setMode("convert"))} data-testid="clear-yes">
                 Yes, clear
               </button>
-              <button type="button" className="btn btn-sm btn-ghost" onClick={() => setConfirmClear(false)} data-testid="clear-no">
+              <button type="button" className="btn btn-sm btn-ghost" onClick={cancelClear} data-testid="clear-no">
                 Keep
               </button>
             </div>

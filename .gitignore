@@ -9,3 +9,4 @@ next-env.d.ts
 .DS_Store
 tests/e2e/artifacts
 public/vendor
+public/workers

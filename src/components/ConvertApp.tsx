@@ -42,7 +42,7 @@ function InspectingView() {
 
 /** Switches between the upload, single-file workspace, batch, merge, progress, result and error screens. */
 export function ConvertApp() {
-  const { state, selectFile, notice } = useConverter();
+  const { state, selectFile, notice, reset } = useConverter();
   const { queue, mode, setMode, merge } = useBatchContext();
   const batch = useBatchQueue().snap;
   const mergeSnap = useMergeList().snap;
@@ -54,6 +54,8 @@ export function ConvertApp() {
 
   /** One file keeps the single-file flow; several files (or merge mode) go to the batch or merge workspace. */
   const onFiles = (files: File[]) => {
+    // A rejected single file leaves the converter in its error phase, which would hide the batch screen.
+    if (state.phase === "error" && (files.length > 1 || mode === "merge")) reset();
     if (mode === "merge") void merge.addFiles(files);
     else if (files.length === 1) selectFile(files[0]!);
     else void queue.addFiles(files);

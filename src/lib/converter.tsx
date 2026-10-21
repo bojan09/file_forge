@@ -3,6 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { inspectFile, reparseInspection, runConversion, type ConversionOutput, type Inspection } from "@/engine/convert";
 import { FileForgeError, type OutputFormat, type PageSettings, type ParseOptions, type Stage, type StyleSettings } from "@/engine/types";
+import { setBusy } from "./activity";
 import { getSettings, parseOptionsFromSettings, styleFromSettings } from "./settings";
 
 export type ConverterState =
@@ -52,6 +53,8 @@ export function ConverterProvider({ children }: { children: ReactNode }) {
   const urlRef = useRef<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const runId = useRef(0);
+
+  useEffect(() => setBusy("single", state.phase === "converting" || state.phase === "inspecting"), [state.phase]);
 
   const set = useCallback((s: ConverterState) => {
     stateRef.current = s;

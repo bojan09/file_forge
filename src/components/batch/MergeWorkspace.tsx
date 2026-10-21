@@ -70,6 +70,11 @@ export function MergeWorkspace() {
   const list = useRef<HTMLOListElement>(null);
   const title = useRef<HTMLHeadingElement>(null);
   const [confirmClear, setConfirmClear] = useState(false);
+  const clearTrigger = useRef<HTMLButtonElement>(null);
+  const cancelClear = () => {
+    setConfirmClear(false);
+    requestAnimationFrame(() => clearTrigger.current?.focus());
+  };
   const [dropping, setDropping] = useState(false);
   const depth = useRef(0);
   useFlip(list);
@@ -96,16 +101,16 @@ export function MergeWorkspace() {
           </button>
           <input ref={pickInput} type="file" multiple accept={IMAGE_ACCEPT} className="sr-only" tabIndex={-1} aria-hidden="true" onChange={onPickChange} data-testid="merge-input" />
           {!confirmClear ? (
-            <button type="button" className="btn btn-ghost btn-sm" onClick={() => setConfirmClear(true)} data-testid="merge-clear">
+            <button ref={clearTrigger} type="button" className="btn btn-ghost btn-sm" onClick={() => setConfirmClear(true)} data-testid="merge-clear">
               <TrashIcon size={15} /> Clear
             </button>
           ) : (
-            <div role="alertdialog" aria-label="Confirm clearing images" className="enter flex flex-wrap items-center gap-2 rounded-xl border border-danger/40 bg-danger/10 px-3 py-1.5 text-sm" data-testid="merge-clear-confirm">
+            <div role="alertdialog" aria-label="Confirm clearing images" onKeyDown={(e) => e.key === "Escape" && cancelClear()} className="enter flex flex-wrap items-center gap-2 rounded-xl border border-danger/40 bg-danger/10 px-3 py-1.5 text-sm" data-testid="merge-clear-confirm">
               <span>Remove all {items.length} images?</span>
               <button type="button" className="btn btn-sm btn-secondary" autoFocus onClick={() => (merge.clear(), setConfirmClear(false), setMode("convert"))} data-testid="merge-clear-yes">
                 Yes, clear
               </button>
-              <button type="button" className="btn btn-sm btn-ghost" onClick={() => setConfirmClear(false)}>
+              <button type="button" className="btn btn-sm btn-ghost" onClick={cancelClear} data-testid="merge-clear-no">
                 Keep
               </button>
             </div>

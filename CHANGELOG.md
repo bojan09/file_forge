@@ -1,5 +1,22 @@
 # Changelog
 
+## Phase 5: Offline PWA, performance, accessibility, hardening (unreleased)
+
+### Added
+- Installable PWA: web manifest with maskable icons and shortcuts, install button in Settings (only when the browser offers it), hand-written versioned service worker that precaches app assets only (never user files), offline indicator, opt-in update banner that never applies mid-conversion, "Remove offline copy" in Settings, Data Saver respected.
+- Conversion engines built as a separate worker bundle: page scripts dropped from 990 KB to 207 KB over the wire.
+- Branded 404 page; forced-colors (high contrast) styles; 44 px touch targets on coarse pointers.
+- Tests: PWA/offline/update, axe across every screen and state in both themes, privacy (remote resources inert, no file names in console/storage, object URL lifecycle), first-load and main-thread blocking measurements.
+
+### Fixed
+- Selecting several files after a rejected file now opens the batch screen.
+- Escape cancels batch/merge clear confirmations and returns focus to the trigger.
+
+### Changed
+- Unsupported browsers without Web Workers get an explicit message instead of a main-thread conversion.
+
+See `docs/PHASE5_REPORT.md`.
+
 ## Phase 4: Advanced formats, carefully scoped (unreleased)
 
 ### Added

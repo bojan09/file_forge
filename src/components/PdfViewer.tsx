@@ -257,7 +257,7 @@ export function PdfViewer({ blob, label }: { blob: Blob; label: string }) {
           <label htmlFor="pdf-page-input" className="sr-only">
             Page number
           </label>
-          <input id="pdf-page-input" className="field !min-h-9 !w-14 !px-2 text-center" inputMode="numeric" value={draft} onChange={(e) => setDraft(e.target.value.replace(/\D/g, "").slice(0, 5))} disabled={status !== "ready"} data-testid="pdf-page-input" />
+          <input id="pdf-page-input" className="field !min-h-11 !w-14 !px-2 text-center" inputMode="numeric" value={draft} onChange={(e) => setDraft(e.target.value.replace(/\D/g, "").slice(0, 5))} disabled={status !== "ready"} data-testid="pdf-page-input" />
           <span className="text-muted" data-testid="pdf-page-count">
             / {numPages || "–"}
           </span>

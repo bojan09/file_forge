@@ -18,6 +18,8 @@ async function toResult(page: Page, file: Parameters<typeof uploadFile>[1]) {
 const pageLabel = async (page: Page) => (await page.getByTestId("pdf-page-input").inputValue()) + (await page.getByTestId("pdf-page-count").innerText());
 
 test.describe("PDF preview viewer", () => {
+  // The offline copy would serve the viewer engine from its cache and bypass the route that simulates a failure.
+  test.use({ serviceWorkers: "block" });
   test("shows every page, navigates, zooms, fits, and goes fullscreen", async ({ page }) => {
     await toResult(page, md("long.md", longMd(40)));
     const viewer = page.getByTestId("pdf-viewer");

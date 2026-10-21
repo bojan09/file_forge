@@ -19,6 +19,13 @@ export default function PrivacyPage() {
           <li>No analytics on file contents or file names.</li>
         </ul>
       </Section>
+      <Section title="Offline copy and installation">
+        <ul>
+          <li>After your first visit FileForge stores its own pages, scripts, fonts and icons on your device (about 8 MB) so it works without a connection. You can remove this in Settings, and it is skipped when your device asks to save data.</li>
+          <li>Your files, previews and results are never part of that copy. They exist only in memory while you use the page. This is checked by automated tests that read the stored copy and search it for the content of a test file.</li>
+          <li>The service worker only answers requests for FileForge&apos;s own files. It makes no requests of its own to other sites.</li>
+        </ul>
+      </Section>
       <Section title="What is stored locally">
         <p>Only non-sensitive preferences (theme, accent, motion, default output, page and image defaults, filename suffix) are saved in your browser&apos;s local storage. You can erase them in Settings.</p>
       </Section>

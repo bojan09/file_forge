@@ -141,3 +141,23 @@ for (const theme of ["dark", "light"] as const) {
     await page.screenshot({ path: `docs/screenshots/${tag}-18-scanned-refused.png`, fullPage: true });
   });
 }
+
+for (const theme of ["dark", "light"] as const) {
+  test(`phase 5 screens ${theme}`, async ({ page }, info) => {
+    const tag = `${info.project.name}-${theme}`;
+    await page.addInitScript((t) => localStorage.setItem("fileforge:settings:v1", JSON.stringify({ theme: t })), theme);
+    await page.goto("/");
+    await page.getByTestId("file-input").waitFor({ state: "attached" });
+    await page.waitForTimeout(600);
+    await page.screenshot({ path: `docs/screenshots/${tag}-20-home-final.png`, fullPage: true });
+    await page.goto("/settings/");
+    await page.getByTestId("offline-status").waitFor();
+    await page.waitForTimeout(1500);
+    await page.screenshot({ path: `docs/screenshots/${tag}-21-settings-offline.png`, fullPage: true });
+    await page.goto("/");
+    await page.getByTestId("file-input").setInputFiles([corpusFile("docx-simple.docx"), corpusFile("xlsx-simple.xlsx"), { name: "a.md", mimeType: "text/markdown", buffer: Buffer.from("# Hi\n") }]);
+    await page.getByTestId("batch-workspace").waitFor();
+    await page.waitForTimeout(500);
+    await page.screenshot({ path: `docs/screenshots/${tag}-22-batch-queue.png`, fullPage: true });
+  });
+}

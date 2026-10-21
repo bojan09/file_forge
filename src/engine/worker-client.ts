@@ -2,10 +2,17 @@ import type { WorkerRequest, WorkerResponse } from "./convert.worker";
 import { FileForgeError, type RenderJob, type RenderResult, type Stage } from "./types";
 
 let nextId = 1;
+type Fallback = (job: RenderJob, onStage?: (s: Stage) => void) => Promise<RenderResult>;
+let fallback: Fallback | null = null;
+/** Test environments without Worker register the renderer here; the app never does (keeps the engine out of page scripts). */
+export function setRenderFallback(fn: Fallback | null) {
+  fallback = fn;
+}
+const WORKER_URL = "/workers/convert.worker.js";
 
 /**
  * Runs the render job in a dedicated Web Worker. Aborting terminates the worker, which is the only
- * way to genuinely stop a long synchronous render. Falls back to the main thread if workers are unavailable.
+ * way to genuinely stop a long synchronous render.
  */
 export async function renderJob(job: RenderJob, opts: { signal?: AbortSignal; onStage?: (s: Stage) => void } = {}): Promise<RenderResult> {
   const { signal, onStage } = opts;
@@ -13,15 +20,14 @@ export async function renderJob(job: RenderJob, opts: { signal?: AbortSignal; on
 
   let worker: Worker | null = null;
   try {
-    if (typeof Worker !== "undefined") worker = new Worker(new URL("./convert.worker.ts", import.meta.url), { type: "module" });
+    // A prebuilt, separately served bundle (scripts/build-worker.mjs): its 2 MB stays out of the page's own scripts.
+    if (typeof Worker !== "undefined") worker = new Worker(WORKER_URL, { type: "module" });
   } catch {
     worker = null;
   }
 
-  if (!worker) {
-    const { runRender } = await import("./render");
-    return runRender(job, onStage);
-  }
+  if (!worker && fallback) return fallback(job, onStage);
+  if (!worker) throw new FileForgeError("unsupported", "This browser cannot run background workers, which FileForge needs to convert without freezing the page.");
 
   const w = worker;
   const id = nextId++;

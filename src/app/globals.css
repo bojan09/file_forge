@@ -432,3 +432,24 @@ select.field {
 @keyframes pop { from { opacity: 0; transform: scale(0.6); } to { opacity: 1; transform: none; } }
 :root[data-motion="reduced"] .spinner { animation: none; }
 @media (prefers-reduced-motion: reduce) { :root[data-motion="system"] .spinner { animation: none; } }
+
+/* Windows High Contrast / forced colors: the browser replaces our colors with system ones, so state must not rely on color alone. */
+@media (forced-colors: active) {
+  :focus-visible { outline: 3px solid Highlight; outline-offset: 2px; }
+  .card, .card-flat, .qrow, .field, .choice, .btn, .badge, .tab { border: 1px solid CanvasText; }
+  .choice[aria-checked="true"], .choice[aria-pressed="true"] { border-width: 3px; outline: 2px solid Highlight; outline-offset: 1px; }
+  .tab[aria-selected="true"] { border-width: 2px; text-decoration: underline; }
+  .btn-primary { border: 2px solid ButtonText; }
+  .indeterminate, .determinate { border: 1px solid CanvasText; forced-color-adjust: none; background: Canvas; }
+  .indeterminate::before, .determinate > span { forced-color-adjust: none; background: Highlight; }
+  .qrow[data-status="converting"], .qrow[data-status="failed"] { border-width: 3px; }
+  .spinner { forced-color-adjust: none; border-color: GrayText; border-top-color: Highlight; }
+  .check-circle, .check-mark { stroke: Highlight; }
+  .skip-link { border: 2px solid CanvasText; }
+}
+
+/* Touch: every control gets a 44 px target (WCAG 2.5.5 / platform guidance); checkboxes are targeted via their label. */
+@media (pointer: coarse) {
+  button, summary, select, [role="tab"], [role="radio"], label:has(> input[type="checkbox"]) { min-height: 2.75rem !important; }
+  footer nav a, header nav a { display: inline-flex; min-height: 2.75rem; min-width: 2.75rem; align-items: center; justify-content: center; }
+}

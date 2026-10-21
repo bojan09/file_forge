@@ -1,6 +1,5 @@
 import { jpegInfo, prepareImage } from "../prep-image";
 import { pageDims } from "../page";
-import { runRender } from "../render";
 import type { RenderResult } from "../types";
 import { FileForgeError, type ImageFit, type ImageQuality, type MarginName, type Orientation, type PageSizeName, type PreparedImage, type QualityCheck, type RenderJob } from "../types";
 import { checkImageBytes, readImageSize, sniffImage, type ImageType } from "../validate";
@@ -101,7 +100,7 @@ export function createDefaultMergeDeps(): MergeDeps {
 }
 
 /** Test/Node variant: no canvas, no worker. */
-export const directRender: MergeDeps["render"] = (job, opts) => runRender(job, (s) => s !== "reading" && opts.onStage(s));
+export const directRender: MergeDeps["render"] = async (job, opts) => (await import("../render")).runRender(job, (s) => s !== "reading" && opts.onStage(s));
 
 let counter = 0;
 const newId = () => `m${Date.now().toString(36)}${(counter++).toString(36)}`;

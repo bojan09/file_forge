@@ -126,12 +126,13 @@ The output in `out/` is plain static files. Any static host works. For Vercel's 
 1. Import the repository in Vercel. The framework preset is Next.js; no environment variables are needed.
 2. Deploy. `vercel.json` adds a strict Content-Security-Policy (`connect-src 'self'`), other security headers, and immutable caching for hashed assets.
 
-Free-tier limits to be aware of: Vercel Hobby has monthly bandwidth and build-minute quotas (see Vercel's current pricing page). The largest asset is a lazily loaded worker chunk of about 0.9 MB gzipped (2.2 MB raw) containing the PDF and DOCX engines and fonts. It downloads only when the first conversion starts. Conversion itself uses the visitor's CPU and memory, so hosting cost does not scale with file size.
+Free-tier limits to be aware of: Vercel Hobby has monthly bandwidth and build-minute quotas (see Vercel's current pricing page). The page itself ships about 207 KB of scripts and styles over the wire. The PDF and DOCX engines live in a separately built worker (`/workers/convert.worker.js`, about 0.8 MB gzipped, 2.2 MB raw) that downloads when the first conversion starts, or in the background when the offline copy is made. After the first visit the whole app (about 10 MB) is cached on the device for offline use; no user files are ever cached. Conversion itself uses the visitor's CPU and memory, so hosting cost does not scale with file size.
 
 Deployment is not performed by this repository's tooling; nothing in the project requires paid infrastructure.
 
 ## Documentation
 
+- [`docs/PHASE5_REPORT.md`](docs/PHASE5_REPORT.md): offline PWA, performance, accessibility and privacy audit
 - [`docs/PHASE_1_REPORT.md`](docs/PHASE_1_REPORT.md): implemented vs deferred, test results, limitations
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md): layers, batch engine, how to add a format
 - [`docs/PHASE_2_REPORT.md`](docs/PHASE_2_REPORT.md): batch and merge: status, tests, measurements, limitations

@@ -22,7 +22,7 @@ function Seg<T extends string>({ label, value, options, onChange }: { label: str
   return (
     <div role="radiogroup" aria-label={label} className="grid gap-2" style={{ gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))` }}>
       {options.map((o) => (
-        <button key={o.value} type="button" role="radio" aria-checked={value === o.value} className="choice !min-h-10 justify-center !px-2 text-sm font-medium" onClick={() => onChange(o.value)}>
+        <button key={o.value} type="button" role="radio" aria-checked={value === o.value} className="choice min-h-10 justify-center !px-2 text-sm font-medium" onClick={() => onChange(o.value)}>
           {o.label}
         </button>
       ))}
