@@ -83,6 +83,9 @@ export function ConverterProvider({ children }: { children: ReactNode }) {
       stop();
       revoke();
       const id = runId.current;
+      // Cancelling (or picking another file) aborts a long PDF parse and releases the pdf.js document.
+      const ac = new AbortController();
+      abortRef.current = ac;
       setNotice(extraFiles > 0 ? "Batch conversion isn't available yet. Only the first file was used." : null);
       set({ phase: "inspecting", fileName: file.name, step: "reading" });
       const prefs = getSettings();
@@ -94,6 +97,7 @@ export function ConverterProvider({ children }: { children: ReactNode }) {
             if (id === runId.current && stateRef.current.phase === "inspecting") set({ phase: "inspecting", fileName: file.name, step });
           },
           parseOptionsFromSettings(prefs),
+          ac.signal,
         );
         if (id !== runId.current) return;
         const outputs = insp.format.outputs;
@@ -102,13 +106,14 @@ export function ConverterProvider({ children }: { children: ReactNode }) {
           phase: "ready",
           inspection: insp,
           output,
+          // Binary sources (DOCX, XLSX, PDF) carry their own page setup, fonts and header/footer: use them as editable starting points.
           page: {
-            pageSize: prefs.pageSize,
-            orientation: insp.kind === "image" ? "auto" : prefs.orientation,
-            margins: prefs.margins,
+            pageSize: insp.suggested?.page?.pageSize ?? prefs.pageSize,
+            orientation: insp.kind === "image" ? "auto" : (insp.suggested?.page?.orientation ?? prefs.orientation),
+            margins: insp.suggested?.page?.margins ?? prefs.margins,
             imageQuality: prefs.imageQuality,
             imageFit: prefs.imageFit,
-            style: styleFromSettings(prefs),
+            style: { ...styleFromSettings(prefs), ...insp.suggested?.style },
           },
         });
       } catch (e) {

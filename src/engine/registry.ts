@@ -14,6 +14,8 @@ export interface SourceFormat {
   fidelity: Record<OutputFormat, Fidelity | undefined>;
   summary: string;
   notes: string[];
+  /** Binary packages are validated by signature instead of being read as text. */
+  binary?: boolean;
 }
 
 export const SOURCE_FORMATS: SourceFormat[] = [
@@ -80,9 +82,67 @@ export const SOURCE_FORMATS: SourceFormat[] = [
     summary: "One image per PDF page, with orientation and aspect ratio preserved.",
     notes: ["The PDF contains a picture. Text in the image is not selectable (no OCR).", "Images to DOCX is not supported."],
   },
+  {
+    id: "docx",
+    label: "Word",
+    extensions: ["docx"],
+    mimeTypes: ["application/vnd.openxmlformats-officedocument.wordprocessingml.document"],
+    maxBytes: 25 * MB,
+    outputs: ["pdf"],
+    fidelity: { pdf: "experimental", docx: undefined },
+    binary: true,
+    summary: "Experimental. Text, headings, lists, tables, links and pictures become a PDF with searchable text; the original layout, fonts and spacing are not reproduced.",
+    notes: [
+      "Page size, orientation, margins, the main font style, header, footer and page numbers are read from the document and offered as editable options.",
+      "Tracked changes are shown as final text. Comments, footnotes, endnotes, charts, SmartArt and embedded objects are not included, and each is reported.",
+      "Macros are ignored and never run. Only .docx is accepted (not .doc or .docm).",
+    ],
+  },
+  {
+    id: "xlsx",
+    label: "Excel",
+    extensions: ["xlsx"],
+    mimeTypes: ["application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"],
+    maxBytes: 15 * MB,
+    outputs: ["pdf"],
+    fidelity: { pdf: "experimental", docx: undefined },
+    binary: true,
+    summary: "Experimental. One sheet (or all sheets) becomes a table in the PDF, using the values as formatted in the workbook. Formulas show their last saved result and are never recalculated.",
+    notes: [
+      "Choose the sheet, whether to use the print area, and the page orientation. Wide sheets shrink the text; Auto orientation picks landscape above 7 columns.",
+      "Colors, borders, fonts, conditional formatting, charts and pictures are not reproduced. Merged cells show only their top-left value.",
+      "Sheets above the row or column limits are refused with a message; nothing is cut off silently. Converting to Word is not offered, because turning cells into a document table has no single correct meaning.",
+    ],
+  },
+  {
+    id: "pdf",
+    label: "PDF (with text)",
+    extensions: ["pdf"],
+    mimeTypes: ["application/pdf"],
+    maxBytes: 30 * MB,
+    outputs: ["docx"],
+    fidelity: { pdf: undefined, docx: "experimental" },
+    binary: true,
+    summary: "Experimental and approximate. Paragraphs, headings, lists and aligned tables are rebuilt from the PDF's text into an editable Word file.",
+    notes: [
+      "Only PDFs that contain selectable text. Scanned PDFs are refused: they need OCR, which FileForge does not include.",
+      "Page layout, columns, fonts and pictures are not kept. Repeated headers, footers and page numbers are removed.",
+      "Password-protected PDFs can't be opened. FileForge never removes protection.",
+    ],
+  },
+];
+
+/** Conversions that are deliberately not offered, with the reason. Shown on the Formats page. */
+export const UNAVAILABLE_PATHWAYS: { from: string; to: string; reason: string }[] = [
+  { from: "Scanned PDF", to: "Word", reason: "Needs OCR. A browser-only OCR engine would add several megabytes of model data, still read tables and layout poorly, and a scanned page that is not recognised would produce a misleading empty or wrong document." },
+  { from: "Excel", to: "Word", reason: "A spreadsheet has no single correct document form (which sheet, which range, how wide). Convert to PDF, or export the cells you need as CSV." },
+  { from: "PowerPoint", to: "PDF", reason: "Faithful slide rendering needs layout inheritance, charts, SmartArt, embedded fonts and effects that cannot be reproduced locally. A text-only outline would be misleading, so no half measure is offered." },
+  { from: "PowerPoint", to: "Word", reason: "Slides have no faithful document equivalent." },
+  { from: "EPUB", to: "PDF / Word", reason: "Not investigated: reflowable content with embedded styling needs a layout engine that is out of scope for this release." },
 ];
 
 export interface ProcessingLimits {
+  pdfMaxPages: number;
   csvMaxRows: number;
   csvMaxCols: number;
   htmlMaxNodes: number;
@@ -90,8 +150,8 @@ export interface ProcessingLimits {
 }
 
 export const PROCESSING_LIMITS: Record<Processing, ProcessingLimits> = {
-  balanced: { csvMaxRows: 20000, csvMaxCols: 40, htmlMaxNodes: 100000, imageMaxMegapixels: 25 },
-  conservative: { csvMaxRows: 5000, csvMaxCols: 30, htmlMaxNodes: 30000, imageMaxMegapixels: 12 },
+  balanced: { pdfMaxPages: 300, csvMaxRows: 20000, csvMaxCols: 40, htmlMaxNodes: 100000, imageMaxMegapixels: 25 },
+  conservative: { pdfMaxPages: 100, csvMaxRows: 5000, csvMaxCols: 30, htmlMaxNodes: 30000, imageMaxMegapixels: 12 },
 };
 
 export const ACCEPT_ATTR = SOURCE_FORMATS.flatMap((f) => f.extensions.map((e) => `.${e}`)).join(",");

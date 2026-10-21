@@ -105,6 +105,13 @@ for t in d.tables:
     for r in t.rows:
         rows.append([{"t": c.text, "fill": (c._tc.tcPr.find(qn("w:shd")).get(qn("w:fill")) if c._tc.tcPr is not None and c._tc.tcPr.find(qn("w:shd")) is not None else None), "align": str(c.paragraphs[0].alignment) if c.paragraphs[0].alignment is not None else None} for c in r.cells])
     out["tables"].append({"rows": rows, "headerRepeat": 'w:tblHeader' in t._tbl.xml})
+body = []
+for ch in d.element.body.iterchildren():
+    if ch.tag.endswith("}p"):
+        body.append("".join(t.text or "" for t in ch.iter() if t.tag.endswith("}t")))
+    elif ch.tag.endswith("}tbl"):
+        body.append(" ".join((t.text or "") for t in ch.iter() if t.tag.endswith("}t")))
+out["body"] = body
 out["styles"] = {}
 out["styleCounts"] = {}
 for x in d.styles:

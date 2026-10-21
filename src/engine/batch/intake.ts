@@ -1,4 +1,5 @@
 import { SOURCE_FORMATS, type SourceFormat } from "../registry";
+import { checkBinarySignature } from "../convert";
 import { checkImageBytes, validateFileMeta } from "../validate";
 import { FileForgeError, type Processing } from "../types";
 
@@ -30,6 +31,8 @@ export async function validateIntake(file: File, processing: Processing): Promis
       // The JPEG size marker can sit beyond the first megabyte (large embedded thumbnails). Defer that case to conversion time.
       if (!(e instanceof FileForgeError && e.code === "bad-image" && file.size > HEAD_IMAGE && /dimensions/.test(e.message))) throw e;
     }
+  } else if (format.id === "docx" || format.id === "xlsx" || format.id === "pdf") {
+    checkBinarySignature(format.id, await readHead(file, 16));
   } else {
     const head = await readHead(file, HEAD_TEXT);
     const utf16 = (head[0] === 0xff && head[1] === 0xfe) || (head[0] === 0xfe && head[1] === 0xff);

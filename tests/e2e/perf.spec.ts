@@ -77,3 +77,41 @@ for (const kind of (process.env.PERF_KIND ? [process.env.PERF_KIND] : ["txt-max"
     expect(failed).toBe(0);
   });
 }
+
+// ---- Phase 4: Office and PDF conversions on a desktop and on a throttled (4x slower CPU) device ----
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+
+const corpusPath = (n: string) => path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../corpus", n);
+const CASES: [string, "pdf" | "docx"][] = [
+  ["docx-simple.docx", "pdf"],
+  ["docx-long.docx", "pdf"],
+  ["xlsx-wide.xlsx", "pdf"],
+  ["xlsx-long.xlsx", "pdf"],
+  ["pdf-text-simple.pdf", "docx"],
+  ["pdf-long.pdf", "docx"],
+];
+
+for (const throttle of [1, 4]) {
+  test(`phase 4 pathways, CPU x${throttle}`, async ({ page }) => {
+    test.setTimeout(900_000);
+    const cdp = await page.context().newCDPSession(page);
+    await cdp.send("Emulation.setCPUThrottlingRate", { rate: throttle });
+    await page.goto("/");
+    for (const [name, out] of CASES) {
+      const t0 = Date.now();
+      await page.getByTestId("file-input").setInputFiles({ name, mimeType: "application/octet-stream", buffer: readFileSync(corpusPath(name)) });
+      await expect(page.getByTestId("convert-button")).toBeVisible({ timeout: 300_000 });
+      const parseMs = Date.now() - t0;
+      await page.getByTestId(`output-${out}`).click();
+      const t1 = Date.now();
+      await page.getByTestId("convert-button").click();
+      await expect(page.getByRole("heading", { name: "Conversion Complete!" })).toBeVisible({ timeout: 600_000 });
+      const convertMs = Date.now() - t1;
+      const heap = await page.evaluate(() => Math.round(((performance as unknown as { memory?: { usedJSHeapSize: number } }).memory?.usedJSHeapSize ?? 0) / 1048576));
+      const meta = await page.getByTestId("out-meta").innerText();
+      console.log(`P4PERF cpu=x${throttle} ${name}->${out}: open+parse ${parseMs} ms, convert ${convertMs} ms, js heap ${heap} MB, browser rss ${rssMb()} MB, ${meta}`);
+      await page.getByTestId("convert-another").click();
+    }
+  });
+}

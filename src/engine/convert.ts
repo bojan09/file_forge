@@ -2,9 +2,11 @@ import { sanitizeFileName, splitName } from "./batch/naming";
 import { prepareImage } from "./prep-image";
 import { getFormat, type SourceFormat } from "./registry";
 import { DEFAULT_PARSE_OPTIONS } from "./style";
+import type { ParsedBinary, WorkbookInfo } from "./parsers/binary";
+import { isZip } from "./parsers/zip-safe";
 import { checkImageBytes, decodeText, validateFileMeta, type ImageType } from "./validate";
 import { renderJob } from "./worker-client";
-import { FileForgeError, type ConversionWarning, type NormalizedDoc, type OutputFormat, type PageSettings, type ParseOptions, type Processing, type QualityCheck, type SourceKind, type Stage } from "./types";
+import { FileForgeError, type ConversionWarning, type Fidelity, type NormalizedDoc, type OutputFormat, type PageSettings, type ParseOptions, type Processing, type QualityCheck, type SourceKind, type Stage } from "./types";
 
 const PREVIEW_CHARS = 20000;
 
@@ -22,6 +24,11 @@ export interface Inspection {
   /** Warnings about decoding, kept separate so a re-parse can rebuild the full list. */
   decodeWarnings?: ConversionWarning[];
   options: ParseOptions;
+  /** Original bytes of a binary source (DOCX, XLSX, PDF), kept so options can re-parse without re-reading the file. */
+  bytes?: Uint8Array;
+  /** Settings read from the source itself (page setup, fonts, header/footer); applied as editable defaults. */
+  suggested?: ParsedBinary["suggested"];
+  workbook?: WorkbookInfo;
   rawText?: string;
   rawTruncated?: boolean;
   image?: { bytes: Uint8Array; type: ImageType; width: number; height: number };
@@ -29,7 +36,7 @@ export interface Inspection {
 }
 
 /** Parsers are loaded on demand so the first paint only pays for the format actually used. */
-async function parseText(kind: Exclude<SourceKind, "image">, text: string, processing: Processing, options: ParseOptions): Promise<NormalizedDoc> {
+async function parseText(kind: "txt" | "md" | "html" | "csv", text: string, processing: Processing, options: ParseOptions): Promise<NormalizedDoc> {
   switch (kind) {
     case "txt":
       return (await import("./parsers/txt")).parseTxt(text);
@@ -70,6 +77,29 @@ export function complexityNote(doc: NormalizedDoc, size: number, kind: SourceKin
   return null;
 }
 
+const SIGNATURE_ERRORS: Record<"docx" | "xlsx" | "pdf", string> = {
+  docx: "This file isn't a valid .docx document (it is not a ZIP-based Word file). Older .doc files and renamed files can't be converted.",
+  xlsx: "This file isn't a valid .xlsx workbook (it is not a ZIP-based Excel file). Older .xls files and renamed files can't be converted.",
+  pdf: "This file isn't a valid PDF (it doesn't start with a PDF header).",
+};
+
+/** Cheap signature check shared by single-file inspection and batch intake. */
+export function checkBinarySignature(kind: "docx" | "xlsx" | "pdf", head: Uint8Array): void {
+  const ok = kind === "pdf" ? head.length >= 5 && String.fromCharCode(...head.subarray(0, 5)) === "%PDF-" : isZip(head);
+  if (!ok) throw new FileForgeError("bad-signature", SIGNATURE_ERRORS[kind]);
+}
+
+async function parseBinary(kind: "docx" | "xlsx" | "pdf", bytes: Uint8Array, processing: Processing, options: ParseOptions, signal?: AbortSignal): Promise<ParsedBinary> {
+  switch (kind) {
+    case "docx":
+      return (await import("./parsers/docx")).parseDocx(bytes, processing);
+    case "xlsx":
+      return (await import("./parsers/xlsx")).parseXlsx(bytes, processing, options);
+    case "pdf":
+      return (await import("./parsers/pdf")).parsePdf(bytes, processing, signal);
+  }
+}
+
 function finishDoc(doc: NormalizedDoc, decodeWarnings: ConversionWarning[], kind: SourceKind, size: number): NormalizedDoc {
   if (!doc.blocks.length) throw new FileForgeError("no-content", "No convertible content was found in this file.");
   doc.warnings = [...decodeWarnings, ...doc.warnings];
@@ -78,7 +108,7 @@ function finishDoc(doc: NormalizedDoc, decodeWarnings: ConversionWarning[], kind
   return doc;
 }
 
-export async function inspectFile(file: File, processing: Processing, onStep?: (s: "reading" | "parsing") => void, options: ParseOptions = DEFAULT_PARSE_OPTIONS): Promise<Inspection> {
+export async function inspectFile(file: File, processing: Processing, onStep?: (s: "reading" | "parsing") => void, options: ParseOptions = DEFAULT_PARSE_OPTIONS, signal?: AbortSignal): Promise<Inspection> {
   onStep?.("reading");
   const { format, extension } = validateFileMeta(file);
   const bytes = new Uint8Array(await file.arrayBuffer());
@@ -88,6 +118,13 @@ export async function inspectFile(file: File, processing: Processing, onStep?: (
   if (format.id === "image") {
     const info = checkImageBytes(bytes, extension, processing);
     return { ...base, image: { bytes, type: info.type, width: info.width, height: info.height }, warnings: [] };
+  }
+
+  if (format.id === "docx" || format.id === "xlsx" || format.id === "pdf") {
+    checkBinarySignature(format.id, bytes);
+    const parsed = await parseBinary(format.id, bytes, processing, options, signal);
+    const doc = finishDoc(parsed.doc, [], format.id, file.size);
+    return { ...base, doc, bytes, suggested: parsed.suggested, workbook: parsed.workbook, warnings: doc.warnings };
   }
 
   const { text, replacementCount } = decodeText(bytes);
@@ -108,7 +145,14 @@ export async function inspectFile(file: File, processing: Processing, onStep?: (
 
 /** Re-parses the already-decoded text with new options. Reads nothing from disk. */
 export async function reparseInspection(insp: Inspection, processing: Processing, options: ParseOptions): Promise<Inspection> {
-  if (insp.kind === "image" || insp.text === undefined) return { ...insp, options };
+  if (insp.kind === "image") return { ...insp, options };
+  if (insp.kind === "docx" || insp.kind === "xlsx" || insp.kind === "pdf") {
+    if (!insp.bytes) return { ...insp, options };
+    const parsed = await parseBinary(insp.kind, insp.bytes, processing, options);
+    const doc = finishDoc(parsed.doc, [], insp.kind, insp.sizeBytes);
+    return { ...insp, doc, options, warnings: doc.warnings, workbook: parsed.workbook ?? insp.workbook };
+  }
+  if (insp.text === undefined) return { ...insp, options };
   const doc = finishDoc(await parseText(insp.kind, insp.text, processing, options), insp.decodeWarnings ?? [], insp.kind, insp.sizeBytes);
   return { ...insp, doc, options, warnings: doc.warnings };
 }
@@ -131,7 +175,7 @@ export interface ConversionOutput {
   pageCount?: number;
   checks: QualityCheck[];
   warnings: ConversionWarning[];
-  fidelity: "high" | "approximate";
+  fidelity: Fidelity;
 }
 
 export interface ConversionOptions {

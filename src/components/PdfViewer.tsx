@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { PDFDocumentLoadingTask, PDFDocumentProxy, RenderTask } from "pdfjs-dist/types/src/display/api";
+import { loadPdfjs } from "@/engine/pdfjs";
 import { ChevronDownIcon, ChevronLeftIcon, ExpandIcon, FitPageIcon, FitWidthIcon, ShrinkIcon, ZoomInIcon, ZoomOutIcon } from "./icons";
 
 type Zoom = "fit-width" | "fit-page" | number;
@@ -17,18 +18,6 @@ const MEASURE_ALL_UP_TO = 150;
 interface Size {
   w: number;
   h: number;
-}
-
-let workerReady = false;
-async function loadPdfjs() {
-  // The legacy build avoids newest-JS-only built-ins (e.g. Map.getOrInsertComputed), so older browsers still render.
-  const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
-  if (!workerReady) {
-    // Same-origin worker copied from node_modules at build time (see scripts/copy-pdfjs-worker.mjs).
-    pdfjs.GlobalWorkerOptions.workerSrc = "/vendor/pdf.worker.min.mjs";
-    workerReady = true;
-  }
-  return pdfjs;
 }
 
 function PageCanvas({ doc, pageNumber, scale, size, active, onSize }: { doc: PDFDocumentProxy; pageNumber: number; scale: number; size: Size; active: boolean; onSize: (n: number, s: Size) => void }) {

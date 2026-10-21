@@ -46,6 +46,10 @@ A small block tree (`heading`, `paragraph`, `list` with nesting, `code`, `quote`
 - `doc-images.ts` flattens PNGs the PDF engine cannot decode without a nested Worker.
 - The result screen renders the generated PDF with pdf.js (legacy build, same-origin worker at `/vendor/pdf.worker.min.mjs`, copied from `node_modules` by `scripts/copy-pdfjs-worker.mjs`). Only pages near the viewport hold a bitmap (`KEEP_PAGES`), canvas area is capped, and loading/error states are explicit.
 
+## Office and PDF inputs (Phase 4)
+
+`inspectFile` branches for `binary` formats: a signature check (`checkBinarySignature`, also used by batch intake), then a lazily imported parser that returns a `ParsedBinary` (the normalized document, settings suggested by the source, workbook info). Parsers read ZIP packages through `OfficeZip` (fflate with declared-size limits, only the parts needed), parse XML with `DOMParser` or tolerant text scans, and never touch the network. Word and Excel parsers need `DOMParser`/regex only; the PDF parser drives pdf.js on the main thread (its own worker does the heavy lifting) and honours an `AbortSignal`. The original bytes are kept on the `Inspection` so changing the Excel sheet or print-area option re-parses without re-reading the file. Rendering is unchanged: the same model goes to the PDF or DOCX renderer.
+
 ## Batch engine (`src/engine/batch`)
 
 `BatchQueue` is a framework-independent store (`subscribe` / `getSnapshot`, used through `useSyncExternalStore`). The real conversion is injected as `deps.convert`, so the queue logic is tested with a deterministic fake engine and, separately, with the real engine.

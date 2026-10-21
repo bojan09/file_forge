@@ -11,9 +11,10 @@ const fx = (n: string) => new Uint8Array(readFileSync(path.resolve(__dirname, ".
 describe("registry", () => {
   it("only advertises the supported conversions", () => {
     const pairs = SOURCE_FORMATS.flatMap((f) => f.outputs.map((o) => `${f.id}->${o}`));
-    expect(pairs.sort()).toEqual(["csv->docx", "csv->pdf", "html->docx", "html->pdf", "image->pdf", "md->docx", "md->pdf", "txt->docx", "txt->pdf"]);
-    expect(findFormatByExtension("docx")).toBeUndefined();
-    expect(findFormatByExtension("pdf")).toBeUndefined();
+    expect(pairs.sort()).toEqual(["csv->docx", "csv->pdf", "docx->pdf", "html->docx", "html->pdf", "image->pdf", "md->docx", "md->pdf", "pdf->docx", "txt->docx", "txt->pdf", "xlsx->pdf"]);
+    // Phase 4: Office and PDF inputs exist, but only the experimental pathways; legacy and macro formats stay out.
+    expect(findFormatByExtension("docx")?.id).toBe("docx");
+    for (const ext of ["doc", "xls", "pptx", "docm", "xlsm", "epub"]) expect(findFormatByExtension(ext), ext).toBeUndefined();
     expect(ACCEPT_ATTR).toContain(".webp");
   });
   it("labels HTML and CSV as approximate and TXT/MD as high fidelity", () => {
@@ -47,7 +48,8 @@ describe("validateFileMeta", () => {
         return (e as FileForgeError).code;
       }
     };
-    expect(code({ name: "a.pdf", size: 5 })).toBe("unsupported-type");
+    expect(code({ name: "a.pptx", size: 5 })).toBe("unsupported-type");
+    expect(code({ name: "a.pdf", size: 30 * 1024 * 1024 + 1 })).toBe("too-large");
     expect(code({ name: "README", size: 5 })).toBe("unsupported-type");
     expect(code({ name: "a.txt", size: 0 })).toBe("empty-file");
     expect(code({ name: "a.txt", size: 5 * 1024 * 1024 + 1 })).toBe("too-large");

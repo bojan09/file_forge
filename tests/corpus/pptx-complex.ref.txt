@@ -1,0 +1,3 @@
+Chart slide
+Free text box on a picture slide
+Table slide

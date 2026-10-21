@@ -11,6 +11,8 @@ const COLORS: Record<string, string> = {
   webp: "#64748b",
   pdf: "#ef4444",
   docx: "#2563eb",
+  xlsx: "#16a34a",
+  pptx: "#ea580c",
 };
 
 export function FileTypeIcon({ ext, size = 40 }: { ext: string; size?: number }) {

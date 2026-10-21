@@ -11,6 +11,9 @@ const ROWS: { id: SourceFormat["id"]; label: string; icon: string }[] = [
   { id: "html", label: "HTML to PDF / Word", icon: "html" },
   { id: "image", label: "Images to PDF", icon: "jpg" },
   { id: "csv", label: "CSV to PDF / Word", icon: "csv" },
+  { id: "docx", label: "Word to PDF (experimental)", icon: "docx" },
+  { id: "xlsx", label: "Excel to PDF (experimental)", icon: "xlsx" },
+  { id: "pdf", label: "PDF to Word (experimental)", icon: "pdf" },
 ];
 
 export function FormatList({ onPick }: { onPick: (f: SourceFormat) => void }) {

@@ -1,5 +1,23 @@
 # Changelog
 
+## Phase 4: Advanced formats, carefully scoped (unreleased)
+
+### Added
+- **Experimental** conversions: Word (.docx) to PDF, Excel (.xlsx) to PDF, and text PDF to Word (.docx). Each lists, before and after conversion, what it could not carry over.
+- Word parser: headings, formatting, alignment, nested lists, tables, links, embedded PNG/JPEG, page and section breaks, tracked changes as final text, text boxes, document properties; page size, orientation, margins, font, line spacing, header, footer and page numbers become editable starting options.
+- Excel parser: formatted values (number, percent, currency, scientific, dates and times, 1904 system), sheet choice (one or all), print areas, hidden rows/columns/sheets, formulas shown with their saved results, first-row header option; refuses sheets above the row and column limits instead of truncating.
+- PDF parser: reading order, two-column detection, headings, lists, aligned tables, hyperlinks, bold/italic, repeated header and footer removal; scanned, password-protected and damaged PDFs are refused with specific messages.
+- Capability matrix with Supported / Approximate / Experimental / Unavailable labels and a "Not available" section (scanned PDF OCR, Excel to Word, PowerPoint, EPUB) with reasons.
+- Size-capped, zip-bomb-safe Office unzip; abortable PDF parsing.
+- Test corpus (49 files) with references from python-docx, openpyxl, pdftotext and LibreOffice, and measured fidelity criteria; unit, E2E, performance and screenshot tests.
+
+### Changed
+- Batch: files that a chosen output can't produce are skipped with a message naming the file type's only output.
+- The upload copy and format list mention the new experimental conversions.
+
+### Known limitations
+See `docs/PHASE4_REPORT.md`.
+
 ## Phase 3: Conversion engine and document fidelity (unreleased)
 
 ### Added

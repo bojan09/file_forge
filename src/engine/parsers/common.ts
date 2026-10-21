@@ -174,12 +174,25 @@ export const newImageBudget = (maxMegapixels: number): ImageBudget => ({ maxImag
 
 export type ImageRejection = "not-data" | "format" | "size" | "count" | "decode";
 
+/** Validates raw PNG/JPEG bytes (sniffed, structure-checked, size-budgeted) and records them against the budget. */
+export function embedDataUriBytes(bytes: Uint8Array, alt: string | undefined, budget: ImageBudget): { image: ImageData } | { rejected: ImageRejection } {
+  if (budget.count >= budget.maxImages) return { rejected: "count" };
+  if (bytes.length > budget.maxBytesEach || budget.bytes + bytes.length > budget.maxBytesTotal) return { rejected: "size" };
+  const type = sniffImage(bytes);
+  if (type !== "png" && type !== "jpeg") return { rejected: "format" };
+  if (type === "png" && !pngStructureOk(bytes)) return { rejected: "decode" };
+  const size = readImageSize(bytes, type);
+  if (!size || size.width < 1 || size.height < 1 || (size.width * size.height) / 1e6 > budget.maxMegapixels) return { rejected: "size" };
+  budget.count++;
+  budget.bytes += bytes.length;
+  return { image: { bytes, mime: type === "png" ? "image/png" : "image/jpeg", width: size.width, height: size.height, alt: alt?.trim() || undefined } };
+}
+
 /** Decodes a base64 `data:image/png|jpeg` URI. Only JPEG and PNG are embedded; the bytes are sniffed, never trusted. */
 export function embedDataUri(src: string, alt: string | undefined, budget: ImageBudget): { image: ImageData } | { rejected: ImageRejection } {
   const m = /^data:image\/(png|jpe?g);base64,([A-Za-z0-9+/=\s]+)$/i.exec(src.trim());
   if (!m) return { rejected: /^data:/i.test(src.trim()) ? "format" : "not-data" };
   const b64 = m[2]!.replace(/\s+/g, "");
-  if (budget.count >= budget.maxImages) return { rejected: "count" };
   if (b64.length * 0.75 > budget.maxBytesEach || budget.bytes + b64.length * 0.75 > budget.maxBytesTotal) return { rejected: "size" };
   let bytes: Uint8Array;
   try {
@@ -189,14 +202,7 @@ export function embedDataUri(src: string, alt: string | undefined, budget: Image
   } catch {
     return { rejected: "decode" };
   }
-  const type = sniffImage(bytes);
-  if (type !== "png" && type !== "jpeg") return { rejected: "format" };
-  if (type === "png" && !pngStructureOk(bytes)) return { rejected: "decode" };
-  const size = readImageSize(bytes, type);
-  if (!size || size.width < 1 || size.height < 1 || (size.width * size.height) / 1e6 > budget.maxMegapixels) return { rejected: "size" };
-  budget.count++;
-  budget.bytes += bytes.length;
-  return { image: { bytes, mime: type === "png" ? "image/png" : "image/jpeg", width: size.width, height: size.height, alt: alt?.trim() || undefined } };
+  return embedDataUriBytes(bytes, alt, budget);
 }
 
 export function describeRejected(reasons: Map<ImageRejection, number>, total: number): string[] {

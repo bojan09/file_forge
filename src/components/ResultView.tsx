@@ -79,7 +79,12 @@ export function ResultView() {
             )}
           </div>
 
-          {result.fidelity === "approximate" && (
+          {result.fidelity === "experimental" && (
+        <p className="badge badge-warn !rounded-lg !px-3 !py-2 !text-xs" data-testid="experimental-result-note">
+          Experimental conversion: compare this result with the original and check the notes below.
+        </p>
+      )}
+      {result.fidelity === "approximate" && (
             <p className="badge badge-warn !rounded-lg !px-3 !py-2 !text-xs">Approximate fidelity: layout may differ from the original. Please review the output.</p>
           )}
 

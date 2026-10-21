@@ -10,7 +10,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: { default: "FileForge – Convert your files to PDF or Word, privately", template: "%s · FileForge" },
-  description: "Free browser-only converter for TXT, Markdown, HTML, CSV and images to PDF or editable DOCX. Your files are processed on your device and never uploaded.",
+  description: "Free browser-only converter for TXT, Markdown, HTML, CSV and images to PDF or editable DOCX, plus experimental Word, Excel and PDF conversions. Your files are processed on your device and never uploaded.",
   icons: { icon: "/icon.svg" },
 };
 

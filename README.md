@@ -6,6 +6,10 @@ Phase 2 adds batch conversion (queue, pause/resume/cancel/retry, shared and per-
 
 ## Features
 
+**Advanced formats (Phase 4, experimental)**
+- Word to PDF, Excel to PDF and text PDF to Word, each clearly labeled Experimental, each listing what it could not carry over
+- Not offered, with reasons: scanned PDF OCR, Excel to Word, PowerPoint, EPUB (see the Formats page)
+
 **Document fidelity (Phase 3)**
 - PDF and DOCX styling: Sans/Serif/Mono fonts, font size, line spacing, header, footer and page numbers, underline and colors, alignment, page breaks, embedded PNG/JPEG images, table borders/shading/column sizing, document properties
 - HTML inline styles and embedded images, Markdown images, task lists, front matter and source mode, CSV delimiter and header options
@@ -106,6 +110,7 @@ File -> validate (extension, size, magic bytes, header dimensions)
 | `src/engine/convert.worker.ts`, `worker-client.ts` | Worker execution and cancellation |
 | `src/engine/style.ts`, `fonts.ts`, `doc-images.ts` | Style resolution and clamping, on-demand Liberation fonts, PNG preparation for PDF |
 | `src/components/PdfViewer.tsx` | pdf.js preview viewer (lazy, same-origin worker) |
+| `src/engine/parsers/{docx,xlsx,pdf}.ts`, `zip-safe.ts` | Office and PDF parsers into the shared model (size-capped unzip, no network) |
 | `src/engine/layout-safe.ts` | Keeps PDF layout linear for huge paragraphs / unbroken text |
 | `src/engine/batch/*` | Queue, intake validation, duplicate detection, naming, limits, ZIP, merge |
 | `src/lib/converter.tsx` | UI state machine (idle, inspecting, ready, converting, done, error) |
@@ -130,10 +135,11 @@ Deployment is not performed by this repository's tooling; nothing in the project
 - [`docs/PHASE_1_REPORT.md`](docs/PHASE_1_REPORT.md): implemented vs deferred, test results, limitations
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md): layers, batch engine, how to add a format
 - [`docs/PHASE_2_REPORT.md`](docs/PHASE_2_REPORT.md): batch and merge: status, tests, measurements, limitations
+- [`docs/PHASE4_REPORT.md`](docs/PHASE4_REPORT.md): feasibility matrix, quality gates, corpus results, measurements
 - [`docs/PHASE_3_REPORT.md`](docs/PHASE_3_REPORT.md): fidelity engine, preview viewer, measurements, limitations
 - [`docs/FORMAT_COMPATIBILITY.md`](docs/FORMAT_COMPATIBILITY.md): supported conversions, limits, behavior details
 - [`docs/DESIGN_REFERENCE.md`](docs/DESIGN_REFERENCE.md): adherence to the visual reference and deliberate deviations
 
 ## Third-party licenses (runtime dependencies)
 
-pdfmake (MIT), docx (MIT), markdown-it (MIT), DOMPurify (MPL-2.0 OR Apache-2.0), PapaParse (MIT), JSZip (MIT OR GPL-3.0-or-later; used under MIT; verification only), fflate (MIT; ZIP export), Next.js and React (MIT). Roboto font files bundled by pdfmake are Apache-2.0. Liberation Serif and Mono (served from `public/fonts`) are SIL OFL 1.1. pdf.js (pdfjs-dist, Apache-2.0) renders the preview locally; its worker is copied to `public/vendor` at install/build time. Transitive dependencies of the production tree are MIT, ISC, BSD, Apache-2.0, 0BSD, BlueOak-1.0.0 or similar permissive licenses.
+pdfmake (MIT), docx (MIT), markdown-it (MIT), DOMPurify (MPL-2.0 OR Apache-2.0), PapaParse (MIT), JSZip (MIT OR GPL-3.0-or-later; used under MIT; verification only), fflate (MIT; ZIP export), Next.js and React (MIT). Roboto font files bundled by pdfmake are Apache-2.0. Liberation Serif and Mono (served from `public/fonts`) are SIL OFL 1.1. pdf.js (pdfjs-dist, Apache-2.0) renders the preview locally; its worker is copied to `public/vendor` at install/build time. The Word, Excel and PDF parsers are our own code on top of fflate and pdf.js; no new dependency was added in Phase 4. Transitive dependencies of the production tree are MIT, ISC, BSD, Apache-2.0, 0BSD, BlueOak-1.0.0 or similar permissive licenses.

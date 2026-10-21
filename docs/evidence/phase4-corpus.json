@@ -1,0 +1,188 @@
+[
+  {
+    "pathway": "docx-pdf",
+    "file": "docx-simple.docx",
+    "bagRecall": 1,
+    "orderedRecall": 1,
+    "pages": 1,
+    "referencePages": 1,
+    "pageRatio": 1,
+    "ms": 544,
+    "warnings": [
+      "experimental"
+    ]
+  },
+  {
+    "pathway": "docx-pdf",
+    "file": "docx-complex.docx",
+    "bagRecall": 0.9874,
+    "orderedRecall": 0.9874,
+    "pages": 4,
+    "referencePages": 4,
+    "pageRatio": 1,
+    "ms": 215,
+    "warnings": [
+      "experimental",
+      "tracked-changes",
+      "textboxes",
+      "images-embedded",
+      "merged-cells",
+      "nested-tables",
+      "sections",
+      "header-footer"
+    ]
+  },
+  {
+    "pathway": "docx-pdf",
+    "file": "docx-long.docx",
+    "bagRecall": 1,
+    "orderedRecall": 1,
+    "pages": 71,
+    "referencePages": 50,
+    "pageRatio": 1.42,
+    "ms": 814,
+    "warnings": [
+      "experimental"
+    ]
+  },
+  {
+    "pathway": "xlsx-pdf",
+    "file": "xlsx-simple.xlsx",
+    "tokenRecall": 1,
+    "pages": 1,
+    "ms": 38,
+    "warnings": [
+      "experimental",
+      "formulas"
+    ]
+  },
+  {
+    "pathway": "xlsx-pdf",
+    "file": "xlsx-multi.xlsx",
+    "tokenRecall": 1,
+    "pages": 2,
+    "ms": 32,
+    "warnings": [
+      "experimental",
+      "hidden-sheets",
+      "print-area",
+      "formulas",
+      "merged-cells",
+      "hidden-rows",
+      "charts"
+    ]
+  },
+  {
+    "pathway": "xlsx-pdf",
+    "file": "xlsx-wide.xlsx",
+    "tokenRecall": 1,
+    "pages": 1,
+    "ms": 96,
+    "warnings": [
+      "experimental"
+    ]
+  },
+  {
+    "pathway": "xlsx-pdf",
+    "file": "xlsx-unicode.xlsx",
+    "tokenRecall": 1,
+    "pages": 1,
+    "ms": 28,
+    "warnings": [
+      "experimental"
+    ]
+  },
+  {
+    "pathway": "xlsx-pdf",
+    "file": "xlsx-long.xlsx (5,000 rows)",
+    "pages": 162,
+    "ms": 1369
+  },
+  {
+    "pathway": "pdf-docx",
+    "file": "pdf-text-simple.pdf",
+    "bagRecall": 1,
+    "orderedRecall": 1,
+    "headings": 5,
+    "tables": 1,
+    "ms": 60,
+    "warnings": [
+      "experimental",
+      "tables-detected",
+      "headers-removed",
+      "page-breaks"
+    ]
+  },
+  {
+    "pathway": "pdf-docx",
+    "file": "pdf-two-column.pdf",
+    "bagRecall": 1,
+    "orderedRecall": 1,
+    "headings": 2,
+    "tables": 0,
+    "ms": 18,
+    "warnings": [
+      "experimental",
+      "tables",
+      "columns",
+      "headers-removed",
+      "page-breaks"
+    ]
+  },
+  {
+    "pathway": "pdf-docx",
+    "file": "pdf-long.pdf",
+    "bagRecall": 1,
+    "orderedRecall": 1,
+    "headings": 120,
+    "tables": 0,
+    "ms": 41,
+    "warnings": [
+      "experimental",
+      "tables",
+      "headers-removed",
+      "page-breaks"
+    ]
+  },
+  {
+    "pathway": "pdf-docx",
+    "file": "pdf-from-libreoffice.pdf",
+    "bagRecall": 1,
+    "orderedRecall": 1,
+    "headings": 6,
+    "tables": 1,
+    "ms": 16,
+    "warnings": [
+      "experimental",
+      "tables-detected",
+      "images",
+      "headers-removed",
+      "page-breaks"
+    ]
+  },
+  {
+    "pathway": "pptx-feasibility",
+    "rows": [
+      {
+        "file": "pptx-simple.pptx",
+        "wordRecall": 1,
+        "slides": 2,
+        "placeholders": 4,
+        "placeholdersWithoutOwnPosition": 4,
+        "charts": 0,
+        "pictures": 0,
+        "tables": 0
+      },
+      {
+        "file": "pptx-complex.pptx",
+        "wordRecall": 1,
+        "slides": 3,
+        "placeholders": 2,
+        "placeholdersWithoutOwnPosition": 2,
+        "charts": 2,
+        "pictures": 1,
+        "tables": 1
+      }
+    ]
+  }
+]

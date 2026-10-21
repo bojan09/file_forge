@@ -30,7 +30,7 @@ export default function PrivacyPage() {
         </ul>
       </Section>
       <Section title="About">
-        <p>FileForge Phase 1 supports single-file conversion of TXT, Markdown, HTML, CSV and images to PDF or DOCX. It is built with open-source libraries: pdfmake, docx, markdown-it, DOMPurify, PapaParse and JSZip.</p>
+        <p>FileForge converts TXT, Markdown, HTML, CSV and images to PDF or DOCX, and experimentally Word and Excel files to PDF and text PDFs to Word, all on your device. It is built with open-source libraries: pdfmake, docx, markdown-it, DOMPurify, PapaParse, fflate, JSZip and pdf.js.</p>
       </Section>
     </PageShell>
   );

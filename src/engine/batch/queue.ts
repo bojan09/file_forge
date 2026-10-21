@@ -38,7 +38,7 @@ export function eligibility(item: Pick<QueueItem, "kind" | "rejectReason" | "ove
       reason:
         item.kind === "image"
           ? "Images can only be converted to PDF. Choose PDF for this file (or for the whole batch)."
-          : `${fmt.label} can't be converted to ${out.toUpperCase()}.`,
+          : `${fmt.label} files convert to ${fmt.outputs.map((o) => o.toUpperCase()).join(" or ")} only. Choose that output for this file (or for the whole batch).`,
     };
   }
   return { ok: true };

@@ -53,6 +53,8 @@ export function AdvancedOptions({ insp, output, page }: { insp: Inspection; outp
   const busy = state.phase === "ready" && !!state.reparsing;
   const opts = insp.options;
   const isCsv = insp.kind === "csv";
+  const isXlsx = insp.kind === "xlsx";
+  const sheets = insp.workbook?.sheets ?? [];
   const isMd = insp.kind === "md";
   const hasTables = !!insp.doc?.hasTables;
   const s = (patch: Partial<StyleSettings>) => setStyle(patch);
@@ -81,6 +83,36 @@ export function AdvancedOptions({ insp, output, page }: { insp: Inspection; outp
           </Row>
         )}
 
+        {isXlsx && sheets.length > 0 && (
+          <>
+            <Row label="Sheet" htmlFor={id("sheet")} hint={sheets.length > 1 ? "Each sheet becomes a table. Choosing all sheets starts every sheet on a new page." : undefined}>
+              <select id={id("sheet")} className="field" value={String(opts.xlsxSheet)} onChange={(e) => p({ xlsxSheet: e.target.value === "all" ? "all" : Number(e.target.value) })} data-testid="xlsx-sheet">
+                {sheets.map((sh) => (
+                  <option key={sh.index} value={sh.index}>
+                    {sh.name}
+                  </option>
+                ))}
+                {sheets.length > 1 && <option value="all">All sheets</option>}
+              </select>
+            </Row>
+            {sheets.some((sh) => sh.printArea) && <Check id={id("print")} label="Use the sheet's print area" checked={opts.xlsxPrintArea} onChange={(v) => p({ xlsxPrintArea: v })} />}
+          </>
+        )}
+
+        {(isCsv || isXlsx) && (
+          <Row label="First row">
+            <Seg
+              label="First row"
+              value={opts.csvHeader}
+              onChange={(v) => p({ csvHeader: v })}
+              options={[
+                { value: "first", label: "Is the header" },
+                { value: "none", label: "Is data" },
+              ]}
+            />
+          </Row>
+        )}
+
         {isCsv && (
           <>
             <Row label="Delimiter" htmlFor={id("delim")} hint="Auto-detect works for most files. Override it if columns look merged.">
@@ -91,17 +123,6 @@ export function AdvancedOptions({ insp, output, page }: { insp: Inspection; outp
                 <option value={"\t"}>Tab</option>
                 <option value="|">Pipe ( | )</option>
               </select>
-            </Row>
-            <Row label="First row">
-              <Seg
-                label="First row"
-                value={opts.csvHeader}
-                onChange={(v) => p({ csvHeader: v })}
-                options={[
-                  { value: "first", label: "Is the header" },
-                  { value: "none", label: "Is data" },
-                ]}
-              />
             </Row>
           </>
         )}

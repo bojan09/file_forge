@@ -65,6 +65,20 @@ Anything else (for example `.pdf`, `.docx`, `.zip`) is rejected with an explanat
 - Quality: High keeps original pixels (a JPEG or 8-bit non-interlaced PNG is embedded unchanged when safe; otherwise it is re-encoded losslessly or at 95%). Balanced re-encodes to JPEG (85%) with a 3000 px long side. Small uses 70% and 2000 px. Transparent images are flattened onto white in Balanced and Small.
 - Fit: "Fit to page" keeps aspect ratio inside the margins; "Match image size" makes the page the image's size (96 dpi, no margins). Orientation is "Auto" by default for images.
 
+## Word, Excel and PDF inputs (Phase 4, experimental)
+
+Every row is labeled **Experimental**. The app lists what was left out before and after the conversion. Criteria and measured results: `docs/PHASE4_REPORT.md`.
+
+| Input | Output | Kept | Not kept (always reported) |
+|---|---|---|---|
+| Word `.docx` | PDF | text, headings, bold/italic/underline/strike/color, alignment, nested lists, tables, links, embedded PNG/JPEG, page breaks, tracked changes as final text, text boxes (in the flow), properties; page setup, font, spacing, header, footer and page numbers as editable options | layout and fonts, comments, footnotes, endnotes, charts, SmartArt, embedded objects, shapes, columns, merged cells (shown as separate cells), EMF/WMF/GIF/SVG pictures |
+| Excel `.xlsx` | PDF | values as formatted in the workbook, sheet choice (one or all), print area, hidden rows/columns/sheets left out as when printing, column widths, number alignment | colors, borders, fonts, conditional formatting, charts, pictures, merged cells (top-left value only), recalculation (cached results are shown), fractions/elapsed-time formats |
+| PDF with text | Word `.docx` | paragraphs, headings, bullet and numbered lists, aligned tables, links, bold/italic, document properties, two-column reading order | page layout, fonts, pictures, borders, merged cells, text boxes, rotated text, repeated headers/footers and page numbers (removed, reported) |
+
+Refused with a specific message: scanned PDFs (no OCR), password-protected PDFs, damaged or disguised files, archives that expand beyond the size caps, sheets above 20,000 rows or 40 columns (5,000 and 30 in conservative mode), PDFs above 300 pages (100 conservative).
+Not offered: `.doc`, `.xls`, macro-enabled files, PowerPoint, EPUB, Excel to Word, Word or Excel to anything but PDF.
+In a batch, the shared output decides eligibility: a PDF in a "to PDF" batch, or Word and Excel files in a "to DOCX" batch, are skipped with an explanation. Page setup read from a document applies to single-file conversions, not to batches.
+
 ## Styling options (PDF and DOCX)
 
 | Option | PDF | DOCX |

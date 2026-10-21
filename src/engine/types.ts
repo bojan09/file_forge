@@ -72,9 +72,10 @@ export interface NormalizedDoc {
   imageCount?: number;
 }
 
-export type SourceKind = "txt" | "md" | "html" | "csv" | "image";
+export type SourceKind = "txt" | "md" | "html" | "csv" | "image" | "docx" | "xlsx" | "pdf";
 export type OutputFormat = "pdf" | "docx";
-export type Fidelity = "high" | "approximate";
+/** high = Supported; approximate = content kept, layout differs; experimental = simple documents only, review the output. */
+export type Fidelity = "high" | "approximate" | "experimental";
 
 export type PageSizeName = "A4" | "LETTER" | "LEGAL";
 export type Orientation = "portrait" | "landscape";
@@ -113,6 +114,10 @@ export interface ParseOptions {
   csvHeader: "first" | "none";
   /** "source" keeps Markdown syntax as monospace text instead of formatting it. */
   markdown: "formatted" | "source";
+  /** XLSX: index among visible sheets, or "all". */
+  xlsxSheet: number | "all";
+  /** XLSX: limit to the sheet's print area when it has one. */
+  xlsxPrintArea: boolean;
 }
 
 export interface PageSettings {

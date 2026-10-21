@@ -99,3 +99,45 @@ for (const theme of ["dark", "light"] as const) {
     await page.screenshot({ path: `docs/screenshots/${tag}-12-csv-options.png`, fullPage: true });
   });
 }
+
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+const corpusFile = (name: string) => ({ name, mimeType: "application/octet-stream", buffer: readFileSync(path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../corpus", name)) });
+
+for (const theme of ["dark", "light"] as const) {
+  test(`phase 4 screens ${theme}`, async ({ page }, info) => {
+    const tag = `${info.project.name}-${theme}`;
+    await page.addInitScript((t) => localStorage.setItem("fileforge:settings:v1", JSON.stringify({ theme: t })), theme);
+    await page.goto("/formats/");
+    await page.waitForTimeout(400);
+    await page.screenshot({ path: `docs/screenshots/${tag}-13-formats-matrix.png`, fullPage: true });
+    await page.goto("/");
+    await page.getByTestId("file-input").setInputFiles(corpusFile("docx-complex.docx"));
+    await waitForWorkspace(page);
+    await page.waitForTimeout(500);
+    await page.screenshot({ path: `docs/screenshots/${tag}-14-docx-workspace.png`, fullPage: true });
+    await convertAndDownload(page);
+    await page.getByTestId("pdf-viewer").locator("canvas").first().waitFor();
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await page.waitForTimeout(1500);
+    await page.screenshot({ path: `docs/screenshots/${tag}-15-docx-result.png`, fullPage: true });
+    await page.getByTestId("convert-another").click();
+    await page.getByTestId("file-input").setInputFiles(corpusFile("xlsx-multi.xlsx"));
+    await waitForWorkspace(page);
+    await page.getByTestId("advanced-options").locator("summary").click();
+    await page.getByTestId("xlsx-sheet").selectOption("all");
+    await page.waitForTimeout(500);
+    await page.screenshot({ path: `docs/screenshots/${tag}-16-xlsx-workspace.png`, fullPage: true });
+    await page.getByRole("button", { name: "New File" }).click();
+    await page.getByTestId("file-input").setInputFiles(corpusFile("pdf-text-simple.pdf"));
+    await waitForWorkspace(page);
+    await page.waitForTimeout(500);
+    await page.screenshot({ path: `docs/screenshots/${tag}-17-pdf-to-word-workspace.png`, fullPage: true });
+    await page.getByRole("button", { name: "New File" }).click();
+    await page.getByTestId("file-input").setInputFiles(corpusFile("pdf-scanned.pdf"));
+    await page.getByTestId("inspect-error").waitFor();
+    await page.waitForTimeout(400);
+    await page.screenshot({ path: `docs/screenshots/${tag}-18-scanned-refused.png`, fullPage: true });
+  });
+}

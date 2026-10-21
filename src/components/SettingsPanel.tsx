@@ -67,6 +67,16 @@ export function SettingsPanel({ insp, output, page }: { insp: Inspection; output
           })}
         </div>
         {isImage && <p className="text-xs text-muted">Images convert to PDF only. The PDF holds a picture, so text in it can&apos;t be selected.</p>}
+        {insp.format.binary && (
+          <p className="text-xs leading-relaxed text-muted" data-testid="only-output-note">
+            {format.label} files convert to {format.outputs.map((o) => o.toUpperCase()).join(" / ")} only.
+          </p>
+        )}
+        {format.fidelity[output] === "experimental" && (
+          <p className="badge badge-warn !items-start !rounded-lg !px-3 !py-2 !text-xs !leading-snug" data-testid="experimental-note">
+            Experimental conversion: it works best on simple documents, and some content or layout may be lost. Read the notes below, convert, then check the result before you rely on it.
+          </p>
+        )}
       </div>
 
       <div className="space-y-3.5 border-t border-line pt-4">

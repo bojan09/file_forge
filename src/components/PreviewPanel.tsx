@@ -31,18 +31,19 @@ function ImagePreview({ insp }: { insp: Inspection }) {
 export function PreviewPanel({ insp }: { insp: Inspection }) {
   const [tab, setTab] = useState<"preview" | "raw">("preview");
   const isImage = insp.kind === "image";
+  const hasRaw = !isImage && insp.rawText !== undefined;
   return (
     <section className="card p-3 sm:p-4" aria-label="File preview">
       <div role="tablist" aria-label="Preview mode" className="mb-3 flex items-center gap-1">
         <button role="tab" id="tab-preview" aria-selected={tab === "preview"} aria-controls="panel-preview" className="tab" onClick={() => setTab("preview")}>
           Preview
         </button>
-        {!isImage && (
+        {hasRaw && (
           <button role="tab" id="tab-raw" aria-selected={tab === "raw"} aria-controls="panel-raw" className="tab" onClick={() => setTab("raw")}>
             Raw Content
           </button>
         )}
-        <span className="ml-auto text-xs text-muted" data-testid="preview-note">Approximate preview: final layout may differ</span>
+        <span className="ml-auto text-xs text-muted" data-testid="preview-note">{insp.format.binary ? "Extracted content: the original layout is not shown" : "Approximate preview: final layout may differ"}</span>
       </div>
       <div className="max-h-[32rem] overflow-auto rounded-lg" role="tabpanel" id={tab === "preview" ? "panel-preview" : "panel-raw"} aria-labelledby={`tab-${tab}`} tabIndex={0}>
         {tab === "preview" ? (

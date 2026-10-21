@@ -39,7 +39,7 @@ export function styleFromSettings(s: Settings): StyleSettings {
 }
 
 export function parseOptionsFromSettings(s: Settings): ParseOptions {
-  return { csvDelimiter: s.csvDelimiter, csvHeader: s.csvHeader, markdown: s.markdown };
+  return { ...DEFAULT_PARSE_OPTIONS, csvDelimiter: s.csvDelimiter, csvHeader: s.csvHeader, markdown: s.markdown };
 }
 
 export const DEFAULT_SETTINGS: Settings = {

@@ -15,7 +15,7 @@ export const DEFAULT_STYLE: StyleSettings = {
   tableFontScale: 1,
 };
 
-export const DEFAULT_PARSE_OPTIONS: ParseOptions = { csvDelimiter: "auto", csvHeader: "first", markdown: "formatted" };
+export const DEFAULT_PARSE_OPTIONS: ParseOptions = { csvDelimiter: "auto", csvHeader: "first", markdown: "formatted", xlsxSheet: 0, xlsxPrintArea: true };
 
 export const FONT_SIZE_RANGE = { min: 9, max: 16 } as const;
 export const LINE_SPACING_RANGE = { min: 1, max: 2 } as const;
