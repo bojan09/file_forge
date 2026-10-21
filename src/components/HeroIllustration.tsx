@@ -31,11 +31,13 @@ export function HeroIllustration() {
         <text x="260" y="104" textAnchor="middle" fontSize="19" fontWeight="800" fill="#fff" fontFamily="ui-sans-serif, system-ui, sans-serif">
           PDF
         </text>
-        <path d="M262 124a10 10 0 0 1 10-10h42l26 26v62a10 10 0 0 1-10 10h-58a10 10 0 0 1-10-10v-78Z" fill="#2563eb" transform="translate(-14 14)" />
-        <path d="M298 128v18a8 8 0 0 0 8 8h18" fill="rgba(255,255,255,0.35)" transform="translate(-14 14) translate(-14 -14) translate(14 14)" opacity="0" />
-        <text x="276" y="198" textAnchor="middle" fontSize="15" fontWeight="800" fill="#fff" fontFamily="ui-sans-serif, system-ui, sans-serif">
-          DOCX
-        </text>
+        <g transform="translate(250 120)">
+          <path d="M0 10A10 10 0 0 1 10 0h42l26 26v62a10 10 0 0 1-10 10H10A10 10 0 0 1 0 88V10Z" fill="#2563eb" />
+          <path d="M52 0v18a8 8 0 0 0 8 8h18" fill="rgba(255,255,255,0.35)" />
+          <text x="39" y="70" textAnchor="middle" fontSize="16" fontWeight="800" fill="#fff" fontFamily="ui-sans-serif, system-ui, sans-serif">
+            DOCX
+          </text>
+        </g>
       </g>
     </svg>
   );

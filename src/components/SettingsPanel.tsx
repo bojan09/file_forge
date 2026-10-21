@@ -1,6 +1,6 @@
 "use client";
 
-import { SOURCE_FORMATS, getFormat } from "@/engine/registry";
+import { getFormat } from "@/engine/registry";
 import type { Inspection } from "@/engine/convert";
 import type { OutputFormat, PageSettings } from "@/engine/types";
 import { useConverter } from "@/lib/converter";
@@ -41,7 +41,6 @@ export function SettingsPanel({ insp, output, page }: { insp: Inspection; output
   const isImage = insp.kind === "image";
   const matchSize = isImage && page.imageFit === "match";
   const pickable: OutputFormat[] = ["pdf", "docx"];
-  void SOURCE_FORMATS;
 
   return (
     <section className="card space-y-5 p-4 sm:p-5" aria-label="Conversion settings">
