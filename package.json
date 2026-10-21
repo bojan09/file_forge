@@ -1,0 +1,47 @@
+{
+  "name": "fileforge",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Free, privacy-first, browser-only file converter (TXT/MD/HTML/CSV/images to PDF or DOCX).",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "npx serve out -l 3000",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:e2e": "playwright test",
+    "check": "npm run lint && npm run typecheck && npm test && npm run build"
+  },
+  "dependencies": {
+    "docx": "^9.13.0",
+    "dompurify": "^3.4.17",
+    "jszip": "^3.10.2",
+    "markdown-it": "^15.0.3",
+    "next": "^16.4.2",
+    "papaparse": "^5.7.0",
+    "pdfmake": "^0.3.12",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.64.1",
+    "@tailwindcss/postcss": "^4.3.3",
+    "@types/node": "^26.6.5",
+    "@types/papaparse": "^5.5.2",
+    "@types/pdfmake": "^0.3.3",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitest/coverage-v8": "^5.0.5",
+    "eslint": "^9.39.5",
+    "eslint-config-next": "^16.4.2",
+    "jsdom": "^29.1.1",
+    "pdfjs-dist": "^6.4.299",
+    "postcss": "^8.5.31",
+    "serve": "^14.2.6",
+    "tailwindcss": "^4.3.3",
+    "typescript": "^6.0.3",
+    "vitest": "^5.0.5"
+  },
+  "type": "module"
+}
