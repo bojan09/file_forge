@@ -7,7 +7,9 @@ import { AlertIcon } from "./icons";
 export function ErrorView() {
   const { state, convert, reset, backToSettings } = useConverter();
   const ref = useRef<HTMLHeadingElement>(null);
-  useEffect(() => ref.current?.focus(), []);
+  useEffect(() => {
+    ref.current?.focus();
+  }, []);
   if (state.phase !== "error") return null;
   return (
     <div className="enter mx-auto max-w-lg">

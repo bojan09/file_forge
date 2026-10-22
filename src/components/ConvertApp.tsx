@@ -50,7 +50,9 @@ export function ConvertApp() {
   const mergeActive = mergeSnap.items.length > 0;
   // Each screen starts at the top so headings and confirmations aren't hidden under the sticky header.
   const screen = state.phase === "idle" ? (batchActive ? "batch" : mergeActive ? "merge" : "home") : state.phase;
-  useEffect(() => window.scrollTo(0, 0), [screen]);
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [screen]);
 
   /** One file keeps the single-file flow; several files (or merge mode) go to the batch or merge workspace. */
   const onFiles = (files: File[]) => {

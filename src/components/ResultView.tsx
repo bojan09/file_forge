@@ -31,7 +31,9 @@ const SPARKS = [
 export function ResultView() {
   const { state, reset, backToSettings } = useConverter();
   const ref = useRef<HTMLHeadingElement>(null);
-  useEffect(() => ref.current?.focus(), []);
+  useEffect(() => {
+    ref.current?.focus();
+  }, []);
   if (state.phase !== "done") return null;
   const { result, url, inspection } = state;
   const allPassed = result.checks.every((c) => c.passed);

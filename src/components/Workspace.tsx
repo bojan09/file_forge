@@ -22,7 +22,9 @@ export function Workspace() {
     reset();
   });
   const title = useRef<HTMLHeadingElement>(null);
-  useEffect(() => title.current?.focus(), []);
+  useEffect(() => {
+    title.current?.focus();
+  }, []);
   if (state.phase !== "ready") return null;
   const { inspection: insp, output, page } = state;
   const ext = insp.extension;

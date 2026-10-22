@@ -45,7 +45,10 @@ export function PageThumb({ doc, pageIndex, rotate, label }: { doc: PDFDocumentP
 
   useEffect(() => {
     const el = box.current;
-    if (!el || typeof IntersectionObserver === "undefined") return setVisible(true);
+    if (!el || typeof IntersectionObserver === "undefined") {
+      setVisible(true);
+      return;
+    }
     const io = new IntersectionObserver((e) => e.some((x) => x.isIntersecting) && setVisible(true), { rootMargin: "300px" });
     io.observe(el);
     return () => io.disconnect();

@@ -142,7 +142,7 @@ test.describe("queue editing", () => {
     test.skip(info.project.name === "mobile", "HTML5 drag and drop is a desktop pointer feature; mobile uses the move buttons");
     await addBatch(page, [txt("a.txt", "1"), txt("b.txt", "22"), txt("c.txt", "333")]);
     await row(page, "c.txt").dragTo(row(page, "a.txt"));
-    await expect(rowsOf(page).evaluateAll((els) => els.map((e) => e.getAttribute("data-name")))).resolves.toEqual(["c.txt", "a.txt", "b.txt"]);
+    await expect.poll(() => rowsOf(page).evaluateAll((els) => els.map((e) => e.getAttribute("data-name")))).toEqual(["c.txt", "a.txt", "b.txt"]);
   });
 
   test("remove one file; clear needs confirmation", async ({ page }) => {

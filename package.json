@@ -12,10 +12,9 @@
     "test": "vitest run",
     "test:e2e": "playwright test",
     "check": "npm run lint && npm run typecheck && npm test && npm run build",
-    "prebuild": "node scripts/copy-pdfjs-worker.mjs && node scripts/build-worker.mjs",
-    "predev": "node scripts/copy-pdfjs-worker.mjs && node scripts/build-worker.mjs",
-    "postinstall": "node scripts/copy-pdfjs-worker.mjs && node scripts/build-worker.mjs",
-    "postbuild": "node scripts/build-sw.mjs"
+    "prebuild": "node scripts/copy-pdfjs-worker.mjs && node scripts/build-worker.mjs && node scripts/build-sw.mjs",
+    "predev": "node scripts/copy-pdfjs-worker.mjs && node scripts/build-worker.mjs && node scripts/build-sw.mjs",
+    "postinstall": "node scripts/copy-pdfjs-worker.mjs && node scripts/build-worker.mjs"
   },
   "dependencies": {
     "docx": "^9.13.0",

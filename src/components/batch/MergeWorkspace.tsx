@@ -78,7 +78,9 @@ export function MergeWorkspace() {
   const [dropping, setDropping] = useState(false);
   const depth = useRef(0);
   useFlip(list);
-  useEffect(() => title.current?.focus(), []);
+  useEffect(() => {
+    title.current?.focus();
+  }, []);
   const { settings: st, items, phase } = snap;
   const busy = phase === "preparing" || phase === "rendering" || phase === "verifying";
   const set = (p: Partial<MergeSettings>) => merge.setSettings(p);

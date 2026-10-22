@@ -15,7 +15,9 @@ const STEPS: { id: Stage; label: string }[] = [
 export function ProgressView() {
   const { state, cancel } = useConverter();
   const ref = useRef<HTMLHeadingElement>(null);
-  useEffect(() => ref.current?.focus(), []);
+  useEffect(() => {
+    ref.current?.focus();
+  }, []);
   if (state.phase !== "converting") return null;
   const current = STEPS.findIndex((s) => s.id === state.stage);
   const target = state.output.toUpperCase();

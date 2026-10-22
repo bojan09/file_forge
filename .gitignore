@@ -10,3 +10,7 @@ next-env.d.ts
 tests/e2e/artifacts
 public/vendor
 public/workers
+public/sw.js
+
+# Vercel CLI local build output
+.vercel

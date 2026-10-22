@@ -10,7 +10,7 @@
 | Item | Implementation |
 |---|---|
 | Manifest | `public/manifest.webmanifest`: id `/`, standalone, 192/512/maskable/SVG icons, Settings and Formats shortcuts |
-| Service worker | `scripts/sw.template.js` → `out/sw.js` at build; cache name = content hash; precache list = every built asset; cache-first for precached URLs only; everything else network-only and never stored |
+| Service worker | `scripts/sw.template.js` → `public/sw.js` in `prebuild` (so hosts such as Vercel publish it); cache name = hash of public files + commit; at install the worker lists the pages and static files known at build and discovers Next's hashed files by reading those pages and the scripts they load; cache-first for the app's own static paths only; everything else network-only and never stored |
 | Update | waiting worker → banner "Update available"; applied only on click and only when no conversion is running (`src/lib/activity.ts`); old `fileforge-app-*` caches deleted on activate; first visit never reloads the page |
 | Offline disclosure | Settings card: state, size, what is/isn't cached, install instructions, "Remove offline copy" (unregisters and deletes cache) |
 | Constraints | Data Saver skips caching and says why; unsupported browsers say so |

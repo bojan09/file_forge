@@ -54,7 +54,9 @@ export function ConverterProvider({ children }: { children: ReactNode }) {
   const abortRef = useRef<AbortController | null>(null);
   const runId = useRef(0);
 
-  useEffect(() => setBusy("single", state.phase === "converting" || state.phase === "inspecting"), [state.phase]);
+  useEffect(() => {
+    setBusy("single", state.phase === "converting" || state.phase === "inspecting");
+  }, [state.phase]);
 
   const set = useCallback((s: ConverterState) => {
     stateRef.current = s;

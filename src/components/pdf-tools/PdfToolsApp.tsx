@@ -69,7 +69,12 @@ export function PdfToolsApp() {
     setBusy("pdf-tools", running);
     return () => setBusy("pdf-tools", false);
   }, [running]);
-  useEffect(() => () => abort.current?.abort(), []);
+  useEffect(
+    () => () => {
+      abort.current?.abort();
+    },
+    [],
+  );
 
   const addFiles = useCallback((files: File[]) => {
     setOutcome(null);

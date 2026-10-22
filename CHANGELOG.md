@@ -1,5 +1,13 @@
 # Changelog
 
+## Fix: production crash and missing offline worker (unreleased)
+
+### Fixed
+- The whole app stopped responding (links, pages, upload, convert) in browsers where `window.scrollTo()` or `element.focus()` return a value (some extensions and polyfills): several effects returned that value, so React called it as a cleanup function ("TypeError: i is not a function"). Every effect now returns nothing; a regression test patches both calls.
+- `/sw.js` was a 404 on Vercel, so the offline copy never started: Vercel's build adapter publishes only files that exist when `next build` finishes, and the worker was generated afterwards. It is now generated into `public/` before the build and finds Next's hashed files itself at install time.
+- Lint ignores `.vercel/` build output; `.vercel` is git-ignored.
+
+
 ## Phase 6: PDF Tools and release readiness (unreleased)
 
 ### Added

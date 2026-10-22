@@ -1,5 +1,5 @@
 import AxeBuilder from "@axe-core/playwright";
-import { readFileSync, writeFileSync } from "node:fs";
+import { readdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { expect, test, type Page } from "@playwright/test";
@@ -153,15 +153,28 @@ test.describe("offline", () => {
         }
       }
       const swText = await (await fetch("/sw.js")).text();
-      const precache = JSON.parse(/const PRECACHE = (\[[\s\S]*?\]);\nconst PRECACHE_SET/.exec(swText)![1]!) as string[];
-      return { keys, urls, leaked, precache };
+      const pages = JSON.parse(/const PAGES = (\[[\s\S]*?\]);\nconst STATIC/.exec(swText)![1]!) as string[];
+      const statics = JSON.parse(/const STATIC = (\[[\s\S]*?\]);\nconst STATIC_SET/.exec(swText)![1]!) as string[];
+      return { keys, urls, leaked, listed: [...pages, ...statics] };
     }, MARKER);
     expect(report.keys).toHaveLength(1);
     expect(report.keys[0]).toMatch(/^fileforge-app-[0-9a-f]{12}$/);
     expect(report.leaked).toBe(0);
     expect(report.urls.some((u) => /blob:|data:|definitely-not-precached|SECRET/.test(u))).toBe(false);
-    expect([...report.urls].sort()).toEqual([...report.precache].sort());
-    expect(report.urls.length).toBeGreaterThan(60);
+    // Only the app's own paths: the build-time list, Next's hashed files, and the completion marker.
+    const unexpected = report.urls.filter((u) => !report.listed.includes(u) && !u.startsWith("/_next/static/") && u !== "/__fileforge_manifest__");
+    expect(unexpected).toEqual([]);
+    for (const u of report.listed) expect(report.urls, `${u} must be cached`).toContain(u);
+    // Everything the app can load must have been found by the worker's own discovery, lazy chunks included.
+    // (A chunk that only the 404 page loads is not part of the offline copy.)
+    const out = path.resolve(here, "../../out");
+    const texts = [...readdirSync(out, { recursive: true, encoding: "utf8" })]
+      .filter((f) => /\.(html|js)$/.test(f) && !/^(404|_not-found)/.test(f))
+      .map((f) => ({ f, text: readFileSync(path.join(out, f), "utf8") }));
+    const chunks = readdirSync(path.join(out, "_next/static/chunks")).filter((c) => texts.some((t) => t.f !== `_next/static/chunks/${c}` && t.text.includes(c)));
+    expect(chunks.length).toBeGreaterThan(20);
+    for (const c of chunks) expect(report.urls, `/_next/static/chunks/${c} must be cached`).toContain(`/_next/static/chunks/${c}`);
+    expect(report.urls.length).toBeGreaterThan(45);
   });
 
   test("a request outside the precache list goes to the network and is never stored", async ({ page }) => {

@@ -11,7 +11,7 @@ const asFile = (n: string) => ({ name: n, mimeType: "application/octet-stream", 
 const TAGS = ["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"];
 
 async function axe(page: Page, label: string) {
-  await page.waitForTimeout(650); // let entrance animations settle so contrast is measured on final colors
+  await page.waitForTimeout(1000); // let entrance animations settle so contrast is measured on final colors
   const res = await new AxeBuilder({ page }).withTags(TAGS).analyze();
   expect(res.violations.map((v) => `${label}: ${v.id} ${v.nodes.map((n) => n.target.join(" ")).join(" | ")}`), label).toEqual([]);
 }

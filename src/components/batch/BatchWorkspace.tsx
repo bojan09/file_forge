@@ -31,7 +31,9 @@ export function BatchWorkspace() {
   const depth = useRef(0);
   const { inputRef: pickInput, pick: pickFiles, onChange: onPickChange } = useFilePicker((files) => void queue.addFiles(files), { accept: ACCEPT_ATTR });
   useFlip(list);
-  useEffect(() => title.current?.focus(), []);
+  useEffect(() => {
+    title.current?.focus();
+  }, []);
   const s = summarize(snap);
   const running = snap.run === "running" || snap.run === "pausing";
 
