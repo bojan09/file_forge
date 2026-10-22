@@ -286,6 +286,66 @@ def make_pptx():
     p.save(OUT / "pptx-complex.pptx")
 
 # ---------------------------------------------------------------- references
+
+def make_epub():
+    """EPUBs built directly (zip + XML), with reference text taken from the source chapters by lxml, not by our parser."""
+    from lxml import html as lhtml
+    CONTAINER = '<?xml version="1.0"?><container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container"><rootfiles><rootfile full-path="OEBPS/content.opf" media-type="application/oebps-package+xml"/></rootfiles></container>'
+
+    def chapter(title, body):
+        return ('<?xml version="1.0" encoding="utf-8"?><!DOCTYPE html><html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops">'
+                f'<head><title>{title}</title><link rel="stylesheet" type="text/css" href="style.css"/></head><body>{body}</body></html>')
+
+    def build(name, chapters, images=None, extra=None, title="Corpus Book", author="Corpus Author", container=True, spine_extra=""):
+        images = images or {}
+        items = "".join(f'<item id="c{i}" href="c{i}.xhtml" media-type="application/xhtml+xml"/>' for i in range(len(chapters)))
+        items += "".join(f'<item id="img{i}" href="images/{n}" media-type="image/{"jpeg" if n.endswith("jpg") else n.split(".")[-1]}"/>' for i, n in enumerate(images))
+        items += '<item id="css" href="style.css" media-type="text/css"/><item id="ncx" href="toc.ncx" media-type="application/x-dtbncx+xml"/>'
+        spine = "".join(f'<itemref idref="c{i}"/>' for i in range(len(chapters))) + spine_extra
+        opf = ('<?xml version="1.0" encoding="utf-8"?><package xmlns="http://www.idpf.org/2007/opf" version="3.0" unique-identifier="id">'
+               f'<metadata xmlns:dc="http://purl.org/dc/elements/1.1/"><dc:identifier id="id">urn:uuid:1234</dc:identifier><dc:title>{title}</dc:title><dc:creator>{author}</dc:creator><dc:language>en</dc:language></metadata>'
+               f'<manifest>{items}</manifest><spine toc="ncx">{spine}</spine></package>')
+        path = OUT / f"{name}.epub"
+        with zipfile.ZipFile(path, "w") as z:
+            z.writestr("mimetype", "application/epub+zip", compress_type=zipfile.ZIP_STORED)
+            if container: z.writestr("META-INF/container.xml", CONTAINER)
+            z.writestr("OEBPS/content.opf", opf)
+            z.writestr("OEBPS/style.css", "body{font-family:serif;color:#222} h1{color:red}")
+            z.writestr("OEBPS/toc.ncx", '<?xml version="1.0"?><ncx xmlns="http://www.daisy.org/z3986/2005/ncx/" version="2005-1"><navMap/></ncx>')
+            for i, c in enumerate(chapters): z.writestr(f"OEBPS/c{i}.xhtml", c, compress_type=zipfile.ZIP_DEFLATED)
+            for n, data in images.items(): z.writestr(f"OEBPS/images/{n}", data)
+            for n, data in (extra or {}).items(): z.writestr(n, data)
+        return path
+
+    png, jpg = (FX / "image.png").read_bytes(), (FX / "photo.jpg").read_bytes()
+    simple = [
+        chapter("One", '<h1>Chapter One</h1><p>It was a bright cold day in April, and the clocks were striking thirteen.</p><div/><p>Second paragraph with <em>emphasis</em> and <strong>strong</strong> text.<br/>After a break.</p><img src="images/cover.png" alt="A picture"/>'),
+        chapter("Two", '<h1>Глава втора</h1><p>Македонски текст: здраво свету, ова е книга.</p><h2>Λίστα</h2><ul><li>πρώτο</li><li>δεύτερο</li></ul><ol><li>one</li><li>two</li></ol>'),
+        chapter("Three", '<h1>Chapter Three</h1><table><tr><th>Name</th><th>Value</th></tr><tr><td>Alpha</td><td>1</td></tr><tr><td>Beta</td><td>2</td></tr></table><p>Closing words with a <a href="https://example.com">link</a>.</p><svg xmlns="http://www.w3.org/2000/svg"><image xlink:href="images/photo.jpg" xmlns:xlink="http://www.w3.org/1999/xlink"/></svg>'),
+    ]
+    build("epub-simple", simple, {"cover.png": png, "photo.jpg": jpg})
+    long = [chapter(f"C{i}", f"<h1>Chapter {i}</h1>" + "".join(f"<p>Para {j} of chapter {i}. " + LOREM * 3 + "</p>" for j in range(14))) for i in range(60)]
+    build("epub-long", long)
+    drm_enc = '<?xml version="1.0"?><encryption xmlns="urn:oasis:names:tc:opendocument:xmlns:container"><EncryptedData xmlns="http://www.w3.org/2001/04/xmlenc#"><EncryptionMethod Algorithm="http://www.w3.org/2001/04/xmlenc#aes128-cbc"/><CipherData><CipherReference URI="OEBPS/c0.xhtml"/></CipherData></EncryptedData></encryption>'
+    build("epub-drm", simple[:1], extra={"META-INF/encryption.xml": drm_enc})
+    font_enc = drm_enc.replace("http://www.w3.org/2001/04/xmlenc#aes128-cbc", "http://www.idpf.org/2008/embedding").replace("OEBPS/c0.xhtml", "OEBPS/font.ttf")
+    build("epub-fontobf", simple[:1], extra={"META-INF/encryption.xml": font_enc, "OEBPS/font.ttf": b"not a real font"})
+    build("epub-nocontainer", simple[:1], container=False)
+    build("epub-gifonly", [chapter("G", '<p>Text with a gif <img src="images/a.gif" alt="gif"/> inside.</p>')], {"a.gif": b"GIF89a\x01\x00\x01\x00\x00\x00\x00;"})
+    (OUT / "epub-notzip.epub").write_bytes(b"this is not a zip file at all")
+    for name in ["epub-simple", "epub-long", "epub-fontobf", "epub-gifonly"]:
+        with zipfile.ZipFile(OUT / f"{name}.epub") as z:
+            texts = []
+            for n in sorted(z.namelist(), key=lambda x: (len(x), x)):
+                pass
+            opf = z.read("OEBPS/content.opf").decode()
+            import re
+            order = [f"OEBPS/{m}.xhtml" for m in re.findall(r'idref="(c\d+)"', opf)]
+            for n in order:
+                tree = lhtml.fromstring(z.read(n))
+                texts.append(" ".join(" ".join(tree.body.itertext()).split()))
+        (OUT / f"{name}.ref.txt").write_text("\n".join(texts), encoding="utf-8")
+
 def references():
     import docx, openpyxl
     from docx.document import Document as _D
@@ -326,6 +386,8 @@ def references():
         (OUT / f"{f}.ref.txt").write_text("\n".join(out), encoding="utf-8")
 
 if __name__ == "__main__":
+    if len(sys.argv) > 1 and sys.argv[1] == "epub":
+        make_epub(); shutil.rmtree(TMP, ignore_errors=True); sys.exit()
     make_docx(); make_xlsx(); make_pdf(); make_pptx(); references()
     shutil.rmtree(TMP, ignore_errors=True)
     for p in sorted(OUT.iterdir()): print(f"{p.stat().st_size:>10}  {p.name}")

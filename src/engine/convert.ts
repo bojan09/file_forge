@@ -1,6 +1,6 @@
 import { sanitizeFileName, splitName } from "./batch/naming";
 import { prepareImage } from "./prep-image";
-import { getFormat, type SourceFormat } from "./registry";
+import { PROCESSING_LIMITS, getFormat, type SourceFormat } from "./registry";
 import { DEFAULT_PARSE_OPTIONS } from "./style";
 import type { ParsedBinary, WorkbookInfo } from "./parsers/binary";
 import { isZip } from "./parsers/zip-safe";
@@ -37,6 +37,8 @@ export interface Inspection {
 
 /** Parsers are loaded on demand so the first paint only pays for the format actually used. */
 async function parseText(kind: "txt" | "md" | "html" | "csv", text: string, processing: Processing, options: ParseOptions): Promise<NormalizedDoc> {
+  // Plain text and Markdown: refuse before parsing a document that cannot be rendered, rather than freezing the page on it.
+  if ((kind === "txt" || kind === "md") && text.length / 3000 > PROCESSING_LIMITS[processing].docMaxPages) throw tooLong(Math.round(text.length / 3000), processing);
   switch (kind) {
     case "txt":
       return (await import("./parsers/txt")).parseTxt(text);
@@ -77,19 +79,23 @@ export function complexityNote(doc: NormalizedDoc, size: number, kind: SourceKin
   return null;
 }
 
-const SIGNATURE_ERRORS: Record<"docx" | "xlsx" | "pdf", string> = {
+const SIGNATURE_ERRORS: Record<"docx" | "xlsx" | "pdf" | "epub", string> = {
+  epub: "This file isn't a valid EPUB (it is not a ZIP-based e-book). Other e-book formats such as MOBI or AZW can't be converted.",
   docx: "This file isn't a valid .docx document (it is not a ZIP-based Word file). Older .doc files and renamed files can't be converted.",
   xlsx: "This file isn't a valid .xlsx workbook (it is not a ZIP-based Excel file). Older .xls files and renamed files can't be converted.",
   pdf: "This file isn't a valid PDF (it doesn't start with a PDF header).",
 };
 
 /** Cheap signature check shared by single-file inspection and batch intake. */
-export function checkBinarySignature(kind: "docx" | "xlsx" | "pdf", head: Uint8Array): void {
+export type BinaryKind = "docx" | "xlsx" | "pdf" | "epub";
+export const isBinaryKind = (k: string): k is BinaryKind => k === "docx" || k === "xlsx" || k === "pdf" || k === "epub";
+
+export function checkBinarySignature(kind: BinaryKind, head: Uint8Array): void {
   const ok = kind === "pdf" ? head.length >= 5 && String.fromCharCode(...head.subarray(0, 5)) === "%PDF-" : isZip(head);
   if (!ok) throw new FileForgeError("bad-signature", SIGNATURE_ERRORS[kind]);
 }
 
-async function parseBinary(kind: "docx" | "xlsx" | "pdf", bytes: Uint8Array, processing: Processing, options: ParseOptions, signal?: AbortSignal): Promise<ParsedBinary> {
+async function parseBinary(kind: BinaryKind, bytes: Uint8Array, processing: Processing, options: ParseOptions, signal?: AbortSignal): Promise<ParsedBinary> {
   switch (kind) {
     case "docx":
       return (await import("./parsers/docx")).parseDocx(bytes, processing);
@@ -97,11 +103,23 @@ async function parseBinary(kind: "docx" | "xlsx" | "pdf", bytes: Uint8Array, pro
       return (await import("./parsers/xlsx")).parseXlsx(bytes, processing, options);
     case "pdf":
       return (await import("./parsers/pdf")).parsePdf(bytes, processing, signal);
+    case "epub":
+      return (await import("./parsers/epub")).parseEpub(bytes, processing);
   }
 }
 
-function finishDoc(doc: NormalizedDoc, decodeWarnings: ConversionWarning[], kind: SourceKind, size: number): NormalizedDoc {
+function tooLong(pages: number, processing: Processing): FileForgeError {
+  const max = PROCESSING_LIMITS[processing].docMaxPages;
+  return new FileForgeError(
+    "doc-too-long",
+    `This document is roughly ${pages.toLocaleString()} pages long, above the ${max.toLocaleString()}-page limit${processing === "conservative" ? ` for conservative mode (balanced allows ${PROCESSING_LIMITS.balanced.docMaxPages.toLocaleString()})` : ""}. Split it into parts and convert them one at a time.`,
+  );
+}
+
+function finishDoc(doc: NormalizedDoc, decodeWarnings: ConversionWarning[], kind: SourceKind, size: number, processing: Processing): NormalizedDoc {
   if (!doc.blocks.length) throw new FileForgeError("no-content", "No convertible content was found in this file.");
+  const pages = estimatePages(doc);
+  if (pages > PROCESSING_LIMITS[processing].docMaxPages) throw tooLong(pages, processing);
   doc.warnings = [...decodeWarnings, ...doc.warnings];
   const note = complexityNote(doc, size, kind);
   if (note) doc.warnings.push(note);
@@ -110,7 +128,7 @@ function finishDoc(doc: NormalizedDoc, decodeWarnings: ConversionWarning[], kind
 
 export async function inspectFile(file: File, processing: Processing, onStep?: (s: "reading" | "parsing") => void, options: ParseOptions = DEFAULT_PARSE_OPTIONS, signal?: AbortSignal): Promise<Inspection> {
   onStep?.("reading");
-  const { format, extension } = validateFileMeta(file);
+  const { format, extension } = validateFileMeta(file, processing);
   const bytes = new Uint8Array(await file.arrayBuffer());
   onStep?.("parsing");
   const base = { file, name: file.name, sizeBytes: file.size, format, kind: format.id, extension, options };
@@ -120,10 +138,10 @@ export async function inspectFile(file: File, processing: Processing, onStep?: (
     return { ...base, image: { bytes, type: info.type, width: info.width, height: info.height }, warnings: [] };
   }
 
-  if (format.id === "docx" || format.id === "xlsx" || format.id === "pdf") {
+  if (isBinaryKind(format.id)) {
     checkBinarySignature(format.id, bytes);
     const parsed = await parseBinary(format.id, bytes, processing, options, signal);
-    const doc = finishDoc(parsed.doc, [], format.id, file.size);
+    const doc = finishDoc(parsed.doc, [], format.id, file.size, processing);
     return { ...base, doc, bytes, suggested: parsed.suggested, workbook: parsed.workbook, warnings: doc.warnings };
   }
 
@@ -138,7 +156,7 @@ export async function inspectFile(file: File, processing: Processing, onStep?: (
   }
   if (!text.trim()) throw new FileForgeError("empty-file", "This file contains no text.");
 
-  const doc = finishDoc(await parseText(format.id, text, processing, options), decodeWarnings, format.id, file.size);
+  const doc = finishDoc(await parseText(format.id, text, processing, options), decodeWarnings, format.id, file.size, processing);
   const rawTruncated = text.length > PREVIEW_CHARS;
   return { ...base, doc, text, decodeWarnings, rawText: rawTruncated ? text.slice(0, PREVIEW_CHARS) : text, rawTruncated, warnings: doc.warnings };
 }
@@ -146,14 +164,14 @@ export async function inspectFile(file: File, processing: Processing, onStep?: (
 /** Re-parses the already-decoded text with new options. Reads nothing from disk. */
 export async function reparseInspection(insp: Inspection, processing: Processing, options: ParseOptions): Promise<Inspection> {
   if (insp.kind === "image") return { ...insp, options };
-  if (insp.kind === "docx" || insp.kind === "xlsx" || insp.kind === "pdf") {
+  if (isBinaryKind(insp.kind)) {
     if (!insp.bytes) return { ...insp, options };
     const parsed = await parseBinary(insp.kind, insp.bytes, processing, options);
-    const doc = finishDoc(parsed.doc, [], insp.kind, insp.sizeBytes);
+    const doc = finishDoc(parsed.doc, [], insp.kind, insp.sizeBytes, processing);
     return { ...insp, doc, options, warnings: doc.warnings, workbook: parsed.workbook ?? insp.workbook };
   }
   if (insp.text === undefined) return { ...insp, options };
-  const doc = finishDoc(await parseText(insp.kind, insp.text, processing, options), insp.decodeWarnings ?? [], insp.kind, insp.sizeBytes);
+  const doc = finishDoc(await parseText(insp.kind, insp.text, processing, options), insp.decodeWarnings ?? [], insp.kind, insp.sizeBytes, processing);
   return { ...insp, doc, options, warnings: doc.warnings };
 }
 

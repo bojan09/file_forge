@@ -7,7 +7,7 @@ export interface Validated {
 }
 
 /** Cheap checks that need no file bytes: extension, size, emptiness. */
-export function validateFileMeta(file: { name: string; size: number }): Validated {
+export function validateFileMeta(file: { name: string; size: number }, processing: Processing = "balanced"): Validated {
   const ext = getExtension(file.name);
   const format = findFormatByExtension(ext);
   if (!format) {
@@ -20,10 +20,11 @@ export function validateFileMeta(file: { name: string; size: number }): Validate
     );
   }
   if (file.size === 0) throw new FileForgeError("empty-file", "This file is empty.");
-  if (file.size > format.maxBytes) {
+  const cap = Math.min(format.maxBytes, PROCESSING_LIMITS[processing].maxFileBytes);
+  if (file.size > cap) {
     throw new FileForgeError(
       "too-large",
-      `${format.label} files are limited to ${formatBytes(format.maxBytes)} here. This file is ${formatBytes(file.size)}.`,
+      `${format.label} files are limited to ${formatBytes(cap)}${cap < format.maxBytes ? " in conservative mode (balanced allows " + formatBytes(format.maxBytes) + ")" : ""} here. This file is ${formatBytes(file.size)}.`,
     );
   }
   return { format, extension: ext };

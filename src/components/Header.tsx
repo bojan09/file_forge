@@ -7,20 +7,22 @@ import { CloseIcon, MenuIcon } from "./icons";
 import { LogoMark, Wordmark } from "./Logo";
 import { NAV_ITEMS, isActive } from "./nav";
 import { ThemeToggle } from "./ThemeToggle";
+import { useGoHome } from "./useGoHome";
 
 export function Header() {
   const pathname = usePathname() ?? "/";
   const [open, setOpen] = useState(false);
+  const goHome = useGoHome(pathname);
   return (
     <header className="sticky top-0 z-40 border-b border-line bg-bg/85 backdrop-blur-md">
       <div className="mx-auto flex h-16 max-w-6xl items-center gap-4 px-4 sm:px-6">
-        <Link href="/" className="flex items-center gap-2.5 rounded-lg" aria-label="FileForge home">
+        <Link href="/" className="flex items-center gap-2.5 rounded-lg" aria-label="FileForge home" onClick={goHome}>
           <LogoMark size={34} />
           <Wordmark className="text-lg" />
         </Link>
         <nav aria-label="Primary" className="ml-4 hidden items-center gap-1 md:flex">
           {NAV_ITEMS.map((item) => (
-            <Link key={item.href} href={item.href} className="nav-link" aria-current={isActive(pathname, item.href) ? "page" : undefined}>
+            <Link key={item.href} href={item.href} className="nav-link" aria-current={isActive(pathname, item.href) ? "page" : undefined} onClick={item.href === "/" ? goHome : undefined}>
               {item.label}
             </Link>
           ))}

@@ -1,5 +1,5 @@
 import { SOURCE_FORMATS, type SourceFormat } from "../registry";
-import { checkBinarySignature } from "../convert";
+import { checkBinarySignature, isBinaryKind } from "../convert";
 import { checkImageBytes, validateFileMeta } from "../validate";
 import { FileForgeError, type Processing } from "../types";
 
@@ -22,7 +22,7 @@ async function readHead(file: File, bytes: number): Promise<Uint8Array> {
  * Throws FileForgeError with a user-facing message.
  */
 export async function validateIntake(file: File, processing: Processing): Promise<IntakeResult> {
-  const { format, extension } = validateFileMeta(file);
+  const { format, extension } = validateFileMeta(file, processing);
   if (format.id === "image") {
     const head = await readHead(file, HEAD_IMAGE);
     try {
@@ -31,7 +31,7 @@ export async function validateIntake(file: File, processing: Processing): Promis
       // The JPEG size marker can sit beyond the first megabyte (large embedded thumbnails). Defer that case to conversion time.
       if (!(e instanceof FileForgeError && e.code === "bad-image" && file.size > HEAD_IMAGE && /dimensions/.test(e.message))) throw e;
     }
-  } else if (format.id === "docx" || format.id === "xlsx" || format.id === "pdf") {
+  } else if (isBinaryKind(format.id)) {
     checkBinarySignature(format.id, await readHead(file, 16));
   } else {
     const head = await readHead(file, HEAD_TEXT);

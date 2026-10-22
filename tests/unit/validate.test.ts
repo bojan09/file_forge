@@ -11,10 +11,10 @@ const fx = (n: string) => new Uint8Array(readFileSync(path.resolve(__dirname, ".
 describe("registry", () => {
   it("only advertises the supported conversions", () => {
     const pairs = SOURCE_FORMATS.flatMap((f) => f.outputs.map((o) => `${f.id}->${o}`));
-    expect(pairs.sort()).toEqual(["csv->docx", "csv->pdf", "docx->pdf", "html->docx", "html->pdf", "image->pdf", "md->docx", "md->pdf", "pdf->docx", "txt->docx", "txt->pdf", "xlsx->pdf"]);
+    expect(pairs.sort()).toEqual(["csv->docx", "csv->pdf", "docx->pdf", "epub->docx", "epub->pdf", "html->docx", "html->pdf", "image->pdf", "md->docx", "md->pdf", "pdf->docx", "txt->docx", "txt->pdf", "xlsx->pdf"]);
     // Phase 4: Office and PDF inputs exist, but only the experimental pathways; legacy and macro formats stay out.
     expect(findFormatByExtension("docx")?.id).toBe("docx");
-    for (const ext of ["doc", "xls", "pptx", "docm", "xlsm", "epub"]) expect(findFormatByExtension(ext), ext).toBeUndefined();
+    for (const ext of ["doc", "xls", "pptx", "docm", "xlsm", "mobi", "azw3"]) expect(findFormatByExtension(ext), ext).toBeUndefined();
     expect(ACCEPT_ATTR).toContain(".webp");
   });
   it("labels HTML and CSV as approximate and TXT/MD as high fidelity", () => {
@@ -27,7 +27,8 @@ describe("registry", () => {
   it("applies the documented size limits", () => {
     const MB = 1024 * 1024;
     const lim = (id: string) => SOURCE_FORMATS.find((x) => x.id === id)!.maxBytes;
-    expect([lim("txt"), lim("md"), lim("html"), lim("csv"), lim("image")]).toEqual([5 * MB, 5 * MB, 2 * MB, 5 * MB, 15 * MB]);
+    expect(SOURCE_FORMATS.map((f) => f.maxBytes)).toEqual(SOURCE_FORMATS.map(() => 100 * MB));
+    expect(lim("pdf")).toBe(100 * MB);
   });
   it("extracts extensions case-insensitively", () => {
     expect(getExtension("A.B.PNG")).toBe("png");
@@ -41,20 +42,23 @@ describe("validateFileMeta", () => {
     expect(validateFileMeta({ name: "p.jpeg", size: 10 }).format.id).toBe("image");
   });
   it("rejects politely with specific reasons", () => {
-    const code = (f: { name: string; size: number }) => {
+    const MB = 1024 * 1024;
+    const code = (f: { name: string; size: number }, mode: "balanced" | "conservative" = "balanced") => {
       try {
-        validateFileMeta(f);
+        validateFileMeta(f, mode);
       } catch (e) {
         return (e as FileForgeError).code;
       }
     };
     expect(code({ name: "a.pptx", size: 5 })).toBe("unsupported-type");
-    expect(code({ name: "a.pdf", size: 30 * 1024 * 1024 + 1 })).toBe("too-large");
+    expect(code({ name: "a.pdf", size: 100 * MB + 1 })).toBe("too-large");
+    expect(code({ name: "a.pdf", size: 31 * MB }, "conservative")).toBe("too-large");
+    expect(code({ name: "a.pdf", size: 99 * MB })).toBeUndefined();
     expect(code({ name: "README", size: 5 })).toBe("unsupported-type");
     expect(code({ name: "a.txt", size: 0 })).toBe("empty-file");
-    expect(code({ name: "a.txt", size: 5 * 1024 * 1024 + 1 })).toBe("too-large");
-    expect(code({ name: "a.html", size: 2 * 1024 * 1024 + 1 })).toBe("too-large");
-    expect(code({ name: "a.png", size: 15 * 1024 * 1024 + 1 })).toBe("too-large");
+    expect(code({ name: "a.txt", size: 100 * MB + 1 })).toBe("too-large");
+    expect(code({ name: "a.html", size: 100 * MB + 1 })).toBe("too-large");
+    expect(code({ name: "a.png", size: 100 * MB + 1 })).toBe("too-large");
     expect(code({ name: "a.png", size: 15 * 1024 * 1024 })).toBeUndefined();
   });
 });

@@ -3,6 +3,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
 import { inspectFile, runConversion, type Inspection } from "@/engine/convert";
+import { buildFromPlan } from "@/engine/pdf-tools/ops";
 import type { Block, ParseOptions } from "@/engine/types";
 import { DEFAULT_PARSE_OPTIONS } from "@/engine/style";
 import { defaultSettings, extractPdf, pythonDocx } from "./helpers";
@@ -297,10 +298,20 @@ describe("PDF to DOCX", () => {
   });
 
   it("enforces page limits per processing mode", async () => {
-    await expect(insp("pdf-long.pdf", {}, "conservative")).rejects.toThrow(/120 pages.*100-page limit/);
     const ok = await insp("pdf-long.pdf");
     expect(ok.doc!.charCount).toBeGreaterThan(50000);
-  }, 120000);
+    // Books: 360 pages is fine in balanced mode and refused in conservative mode (300); 1,080 pages is refused in both.
+    const longBytes = new Uint8Array(corpusBytes("pdf-long.pdf"));
+    const make = async (copies: number) => {
+      const plan = Array.from({ length: copies }, () => Array.from({ length: 120 }, (_, i) => ({ file: 0, page: i, rotate: 0 }))).flat();
+      const { bytes } = await buildFromPlan([longBytes], plan);
+      return new File([bytes as BlobPart], `book-${copies * 120}.pdf`, { type: "application/pdf" });
+    };
+    const p360 = await make(3);
+    await expect(inspectFile(p360, "conservative")).rejects.toThrow(/360 pages.*300-page limit/);
+    await expect(inspectFile(p360, "balanced")).resolves.toMatchObject({ kind: "pdf" });
+    await expect(inspectFile(await make(9), "balanced")).rejects.toThrow(/1,080 pages.*1,000-page limit/);
+  }, 300000);
 
   it("can be cancelled while parsing", async () => {
     const ac = new AbortController();

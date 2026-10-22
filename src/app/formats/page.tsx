@@ -110,7 +110,7 @@ export default function FormatsPage() {
       <Section title="Limitations">
         <ul>
           <li>PDF text uses Roboto, Liberation Serif or Liberation Mono, which cover Latin, Cyrillic and Greek. Other scripts (for example Chinese, Japanese, Korean, Arabic, Hebrew, emoji) can&apos;t be drawn in PDF and are replaced by &quot;?&quot;. If most of a file uses such scripts, PDF is refused. DOCX keeps every character.</li>
-          <li>Word, Excel and PDF-to-Word conversions are <strong>experimental</strong>. HTML and CSV are <strong>approximate</strong>. CSS, scripts, forms, media and remote resources in HTML are ignored.</li>
+          <li>Word, Excel, EPUB and PDF-to-Word conversions are <strong>experimental</strong>. HTML and CSV are <strong>approximate</strong>. CSS, scripts, forms, media and remote resources in HTML are ignored.</li>
           <li>
             Limits: up to {PROCESSING_LIMITS.balanced.imageMaxMegapixels} megapixels per image, {PROCESSING_LIMITS.balanced.csvMaxRows.toLocaleString()} CSV rows and {PROCESSING_LIMITS.balanced.csvMaxCols} columns (conservative processing mode: {PROCESSING_LIMITS.conservative.imageMaxMegapixels} MP, {PROCESSING_LIMITS.conservative.csvMaxRows.toLocaleString()} rows, {PROCESSING_LIMITS.conservative.csvMaxCols} columns). Very large files may be slow or run out of memory on phones.
           </li>

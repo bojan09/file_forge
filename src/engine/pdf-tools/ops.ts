@@ -26,9 +26,9 @@ export interface ToolOutput {
 }
 
 export const PDF_TOOL_LIMITS = {
-  fileBytes: 60 * 1024 * 1024,
-  totalBytes: 200 * 1024 * 1024,
-  totalPages: 1500,
+  fileBytes: 100 * 1024 * 1024,
+  totalBytes: 300 * 1024 * 1024,
+  totalPages: 3000,
   files: 30,
 } as const;
 

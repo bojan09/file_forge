@@ -6,13 +6,19 @@ Source of truth in code: `src/engine/registry.ts`. The Formats page in the app i
 
 | Input | Extensions | PDF | DOCX | Max size |
 |---|---|---|---|---|
-| Plain text | `.txt` | High | High | 5 MB |
-| Markdown | `.md`, `.markdown` | High | High | 5 MB |
-| HTML | `.html`, `.htm` | Approximate | Approximate | 2 MB |
-| CSV | `.csv` | Approximate | Approximate | 5 MB |
-| Images | `.jpg`, `.jpeg`, `.png`, `.webp` | High (picture PDF) | Not supported | 15 MB, 25 MP |
+| Plain text | `.txt` | High | High | 100 MB (≈3,000 pages) |
+| Markdown | `.md`, `.markdown` | High | High | 100 MB (≈3,000 pages) |
+| HTML | `.html`, `.htm` | Approximate | Approximate | 100 MB (100,000 elements) |
+| CSV | `.csv` | Approximate | Approximate | 100 MB (20,000 rows) |
+| Images | `.jpg`, `.jpeg`, `.png`, `.webp` | High (picture PDF) | Not supported | 100 MB, 25 MP |
+| Word | `.docx` | Experimental | Not supported | 100 MB |
+| Excel | `.xlsx` | Experimental | Not supported | 100 MB (20,000 rows) |
+| EPUB | `.epub` | Experimental | Experimental | 100 MB (≈3,000 pages) |
+| PDF with text | `.pdf` | Not supported | Experimental | 100 MB (1,000 pages) |
 
-Anything else (for example `.pdf`, `.docx`, `.zip`) is rejected with an explanation. Only one file is converted at a time.
+Every format accepts files up to 100 MB; the practical limits are the page, row and element counts shown. Conservative mode (low-memory devices) lowers them (documents 1,000 pages, PDFs 300 pages, CSV and Excel 5,000 rows, HTML 30,000 elements) and caps files at 30 MB. A file within the size limit but beyond its page limit is refused with a message that says so.
+
+Anything else (for example `.zip`, `.mobi`, `.pptx`) is rejected with an explanation. Only one file is converted at a time.
 
 ## What the outputs contain
 
@@ -73,10 +79,11 @@ Every row is labeled **Experimental**. The app lists what was left out before an
 |---|---|---|---|
 | Word `.docx` | PDF | text, headings, bold/italic/underline/strike/color, alignment, nested lists, tables, links, embedded PNG/JPEG, page breaks, tracked changes as final text, text boxes (in the flow), properties; page setup, font, spacing, header, footer and page numbers as editable options | layout and fonts, comments, footnotes, endnotes, charts, SmartArt, embedded objects, shapes, columns, merged cells (shown as separate cells), EMF/WMF/GIF/SVG pictures |
 | Excel `.xlsx` | PDF | values as formatted in the workbook, sheet choice (one or all), print area, hidden rows/columns/sheets left out as when printing, column widths, number alignment | colors, borders, fonts, conditional formatting, charts, pictures, merged cells (top-left value only), recalculation (cached results are shown), fractions/elapsed-time formats |
+| EPUB `.epub` | PDF, Word `.docx` | chapters in spine (book) order, each starting on a new page; headings, paragraphs, bold/italic, lists, tables, links, JPEG/PNG pictures (also inside SVG cover wrappers); title and author from the book's metadata | the book's fonts, colors, CSS and page layout, GIF/SVG pictures, audio and video, footnotes as links, the table of contents' clickable links; DRM-protected books are refused |
 | PDF with text | Word `.docx` | paragraphs, headings, bullet and numbered lists, aligned tables, links, bold/italic, document properties, two-column reading order | page layout, fonts, pictures, borders, merged cells, text boxes, rotated text, repeated headers/footers and page numbers (removed, reported) |
 
-Refused with a specific message: scanned PDFs (no OCR), password-protected PDFs, damaged or disguised files, archives that expand beyond the size caps, sheets above 20,000 rows or 40 columns (5,000 and 30 in conservative mode), PDFs above 300 pages (100 conservative).
-Not offered: `.doc`, `.xls`, macro-enabled files, PowerPoint, EPUB, Excel to Word, Word or Excel to anything but PDF.
+Refused with a specific message: scanned PDFs (no OCR), password-protected PDFs, damaged or disguised files, archives that expand beyond the size caps, sheets above 20,000 rows or 40 columns (5,000 and 30 in conservative mode), PDFs above 1,000 pages (300 conservative), documents above about 3,000 pages (1,000 conservative), DRM-protected EPUBs.
+Not offered: `.doc`, `.xls`, macro-enabled files, PowerPoint, MOBI/AZW, Excel to Word, Word or Excel to anything but PDF.
 In a batch, the shared output decides eligibility: a PDF in a "to PDF" batch, or Word and Excel files in a "to DOCX" batch, are skipped with an explanation. Page setup read from a document applies to single-file conversions, not to batches.
 
 ## Styling options (PDF and DOCX)

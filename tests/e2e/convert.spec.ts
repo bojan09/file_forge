@@ -1,3 +1,6 @@
+import { mkdtempSync, truncateSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import path from "node:path";
 import { expect, test } from "@playwright/test";
 import { docxXml, extractPdf } from "../unit/helpers";
 import { convertAndDownload, fixture, trackNetwork, uploadFile, waitForWorkspace } from "./helpers";
@@ -128,8 +131,11 @@ test.describe("rejections", () => {
 
   test("oversized text file is rejected with the limit", async ({ page }) => {
     await page.goto("/");
-    await uploadFile(page, { name: "big.txt", mimeType: "text/plain", buffer: Buffer.alloc(5 * 1024 * 1024 + 10, "a") });
-    await expect(page.getByTestId("inspect-error")).toContainText("limited to 5.0 MB");
+    const big = path.join(mkdtempSync(path.join(tmpdir(), "bigtxt-")), "big.txt");
+    writeFileSync(big, "a");
+    truncateSync(big, 100 * 1024 * 1024 + 10); // sparse; Playwright caps in-memory buffers at 50 MB
+    await page.getByTestId("file-input").setInputFiles(big);
+    await expect(page.getByTestId("inspect-error")).toContainText("limited to 100 MB");
   });
 
   test("empty file and fake image are rejected", async ({ page }) => {

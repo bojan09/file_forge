@@ -8,7 +8,9 @@ Phase 2 adds batch conversion (queue, pause/resume/cancel/retry, shared and per-
 
 **Advanced formats (Phase 4, experimental)**
 - Word to PDF, Excel to PDF and text PDF to Word, each clearly labeled Experimental, each listing what it could not carry over
-- Not offered, with reasons: scanned PDF OCR, Excel to Word, PowerPoint, EPUB (see the Formats page)
+- EPUB to PDF and Word (chapters in book order, pictures included; DRM-protected books refused)
+- Files up to 100 MB in every format; very long documents are refused above a page limit (about 3,000 pages, 1,000 in conservative mode) instead of running out of memory. Measured in a browser: a 600-page EPUB converts to PDF in about 9 s, a 2,500-page one in about 34 s
+- Not offered, with reasons: scanned PDF OCR, Excel to Word, PowerPoint, MOBI/AZW, DRM-protected EPUB (see the Formats page)
 
 **Document fidelity (Phase 3)**
 - PDF and DOCX styling: Sans/Serif/Mono fonts, font size, line spacing, header, footer and page numbers, underline and colors, alignment, page breaks, embedded PNG/JPEG images, table borders/shading/column sizing, document properties
@@ -41,7 +43,7 @@ Phase 2 adds batch conversion (queue, pause/resume/cancel/retry, shared and per-
 
 ## PDF Tools
 
-`/pdf-tools/` works on PDFs entirely in the browser (pdf-lib in a worker; pdf.js thumbnails): merge, split (ranges, every N pages, every page; ZIP when more than one file), organize (reorder, rotate, delete, extract by range), edit title/author/subject/keywords, and experimental lossless compression. Every result is reopened and its page count checked before it is offered. Password-protected and damaged PDFs are refused per file. Limits: 60 MB per file, 200 MB and 1,500 pages per operation, 30 files. Form fields, bookmarks and tags are not carried into merged or extracted files.
+`/pdf-tools/` works on PDFs entirely in the browser (pdf-lib in a worker; pdf.js thumbnails): merge, split (ranges, every N pages, every page; ZIP when more than one file), organize (reorder, rotate, delete, extract by range), edit title/author/subject/keywords, and experimental lossless compression. Every result is reopened and its page count checked before it is offered. Password-protected and damaged PDFs are refused per file. Limits: 100 MB per file, 300 MB and 3,000 pages per operation, 30 files. Form fields, bookmarks and tags are not carried into merged or extracted files.
 
 ## Using batch and merge
 

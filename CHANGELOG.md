@@ -1,5 +1,16 @@
 # Changelog
 
+## EPUB, larger files, home button (unreleased)
+
+### Added
+- EPUB to PDF and Word (experimental): chapters in spine order with page breaks, headings, lists, tables, links and JPEG/PNG pictures (including SVG-wrapped covers); title and author from the OPF; DRM-protected books refused; GIF/SVG pictures reported as left out.
+- Page guards: documents above about 3,000 pages (1,000 in conservative mode) are refused with a clear message before they can exhaust memory; PDF page limit raised from 300/100 to 1,000/300.
+
+### Changed
+- Every format accepts files up to 100 MB (PDF tools too: 100 MB per file, 300 MB and 3,000 pages per operation). Conservative mode caps files at 30 MB.
+- The FileForge logo and the Convert link return to the upload screen even when you are already on the home page (a batch that is still running is left alone).
+
+
 ## Fix: production crash and missing offline worker (unreleased)
 
 ### Fixed

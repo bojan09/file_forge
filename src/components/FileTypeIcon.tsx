@@ -13,6 +13,7 @@ const COLORS: Record<string, string> = {
   docx: "#2563eb",
   xlsx: "#16a34a",
   pptx: "#ea580c",
+  epub: "#0d9488",
 };
 
 export function FileTypeIcon({ ext, size = 40 }: { ext: string; size?: number }) {

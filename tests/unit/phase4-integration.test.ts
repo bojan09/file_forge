@@ -20,15 +20,16 @@ const names = (q: BatchQueue) => q.getSnapshot().items.map((i) => `${i.name}:${i
 describe("registry", () => {
   it("every offered output has a fidelity label, and binary kinds are flagged", () => {
     for (const f of SOURCE_FORMATS) for (const o of f.outputs) expect(f.fidelity[o], `${f.id}->${o}`).toBeTruthy();
-    expect(SOURCE_FORMATS.filter((f) => f.binary).map((f) => f.id).sort()).toEqual(["docx", "pdf", "xlsx"]);
+    expect(SOURCE_FORMATS.filter((f) => f.binary).map((f) => f.id).sort()).toEqual(["docx", "epub", "pdf", "xlsx"]);
     expect(getFormat("docx").outputs).toEqual(["pdf"]);
     expect(getFormat("xlsx").outputs).toEqual(["pdf"]);
     expect(getFormat("pdf").outputs).toEqual(["docx"]);
+    getFormat("epub").outputs.forEach((o) => expect(getFormat("epub").fidelity[o]).toBe("experimental"));
     for (const k of ["docx", "xlsx", "pdf"] as const) expect(Object.values(getFormat(k).fidelity)).toContain("experimental");
   });
   it("the picker accepts the new extensions, and unavailable pathways are documented with reasons", () => {
     const accepted = ACCEPT_ATTR.split(",");
-    for (const e of [".docx", ".xlsx", ".pdf"]) expect(accepted).toContain(e);
+    for (const e of [".docx", ".xlsx", ".pdf", ".epub"]) expect(accepted).toContain(e);
     for (const e of [".pptx", ".doc", ".xls", ".docm", ".xlsm"]) expect(accepted).not.toContain(e);
     expect(UNAVAILABLE_PATHWAYS.map((u) => `${u.from}>${u.to}`)).toEqual(expect.arrayContaining(["Scanned PDF>Word", "Excel>Word", "PowerPoint>PDF", "PowerPoint>Word"]));
     for (const u of UNAVAILABLE_PATHWAYS) expect(u.reason.length).toBeGreaterThan(40);
@@ -47,8 +48,10 @@ describe("intake and single-file guards", () => {
     await expect(validateIntake(corpusFile("pdf-text-simple.pdf"), "balanced")).resolves.toMatchObject({ extension: "pdf" });
   });
   it("size limits are per type", async () => {
-    const big = new File([new Uint8Array(31 * 1024 * 1024)], "huge.pdf");
-    await expect(validateIntake(big, "balanced")).rejects.toThrow(/limited to 30 MB/);
+    const big = new File([new Uint8Array(101 * 1024 * 1024)], "huge.pdf");
+    await expect(validateIntake(big, "balanced")).rejects.toThrow(/limited to 100 MB/);
+    const mid = new File([new Uint8Array(31 * 1024 * 1024)], "mid.pdf");
+    await expect(validateIntake(mid, "conservative")).rejects.toThrow(/limited to 30 MB in conservative mode/);
   });
   it("refuses an output the source can't produce", async () => {
     const i = await inspectFile(corpusFile("docx-simple.docx"), "balanced");

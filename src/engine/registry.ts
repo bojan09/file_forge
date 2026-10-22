@@ -24,7 +24,7 @@ export const SOURCE_FORMATS: SourceFormat[] = [
     label: "Plain text",
     extensions: ["txt"],
     mimeTypes: ["text/plain"],
-    maxBytes: 5 * MB,
+    maxBytes: 100 * MB,
     outputs: ["pdf", "docx"],
     fidelity: { pdf: "high", docx: "high" },
     summary: "Line breaks and paragraphs are preserved. Output uses a proportional font.",
@@ -35,7 +35,7 @@ export const SOURCE_FORMATS: SourceFormat[] = [
     label: "Markdown",
     extensions: ["md", "markdown"],
     mimeTypes: ["text/markdown", "text/x-markdown"],
-    maxBytes: 5 * MB,
+    maxBytes: 100 * MB,
     outputs: ["pdf", "docx"],
     fidelity: { pdf: "high", docx: "high" },
     summary: "Headings, paragraphs, lists, task lists, emphasis, links, code blocks, quotes, tables and embedded images.",
@@ -50,7 +50,7 @@ export const SOURCE_FORMATS: SourceFormat[] = [
     label: "HTML",
     extensions: ["html", "htm"],
     mimeTypes: ["text/html", "application/xhtml+xml"],
-    maxBytes: 2 * MB,
+    maxBytes: 100 * MB,
     outputs: ["pdf", "docx"],
     fidelity: { pdf: "approximate", docx: "approximate" },
     summary: "A sanitized subset of document HTML: headings, paragraphs, lists, tables, links, emphasis, code, basic inline styles and embedded images.",
@@ -65,7 +65,7 @@ export const SOURCE_FORMATS: SourceFormat[] = [
     label: "CSV",
     extensions: ["csv"],
     mimeTypes: ["text/csv", "application/csv", "application/vnd.ms-excel"],
-    maxBytes: 5 * MB,
+    maxBytes: 100 * MB,
     outputs: ["pdf", "docx"],
     fidelity: { pdf: "approximate", docx: "approximate" },
     summary: "Rendered as a table. The delimiter is auto-detected and can be overridden; the first row is the header unless you say otherwise.",
@@ -76,7 +76,7 @@ export const SOURCE_FORMATS: SourceFormat[] = [
     label: "Images",
     extensions: ["jpg", "jpeg", "png", "webp"],
     mimeTypes: ["image/jpeg", "image/png", "image/webp"],
-    maxBytes: 15 * MB,
+    maxBytes: 100 * MB,
     outputs: ["pdf"],
     fidelity: { pdf: "high", docx: undefined },
     summary: "One image per PDF page, with orientation and aspect ratio preserved.",
@@ -87,7 +87,7 @@ export const SOURCE_FORMATS: SourceFormat[] = [
     label: "Word",
     extensions: ["docx"],
     mimeTypes: ["application/vnd.openxmlformats-officedocument.wordprocessingml.document"],
-    maxBytes: 25 * MB,
+    maxBytes: 100 * MB,
     outputs: ["pdf"],
     fidelity: { pdf: "experimental", docx: undefined },
     binary: true,
@@ -103,7 +103,7 @@ export const SOURCE_FORMATS: SourceFormat[] = [
     label: "Excel",
     extensions: ["xlsx"],
     mimeTypes: ["application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"],
-    maxBytes: 15 * MB,
+    maxBytes: 100 * MB,
     outputs: ["pdf"],
     fidelity: { pdf: "experimental", docx: undefined },
     binary: true,
@@ -115,11 +115,27 @@ export const SOURCE_FORMATS: SourceFormat[] = [
     ],
   },
   {
+    id: "epub",
+    label: "EPUB",
+    extensions: ["epub"],
+    mimeTypes: ["application/epub+zip"],
+    maxBytes: 100 * MB,
+    outputs: ["pdf", "docx"],
+    fidelity: { pdf: "experimental", docx: "experimental" },
+    binary: true,
+    summary: "Experimental. Chapters are read in book order and rebuilt from their headings, paragraphs, lists, tables and JPEG/PNG pictures; each chapter starts on a new page.",
+    notes: [
+      "The book's own fonts, colors, spacing, page layout and CSS are not reproduced. Title and author come from the book's metadata.",
+      "Copy-protected (DRM) books are refused; FileForge never removes protection. GIF and SVG pictures, audio and video are left out and reported.",
+      "Very long books are refused above the page limit instead of running out of memory; split them first.",
+    ],
+  },
+  {
     id: "pdf",
     label: "PDF (with text)",
     extensions: ["pdf"],
     mimeTypes: ["application/pdf"],
-    maxBytes: 30 * MB,
+    maxBytes: 100 * MB,
     outputs: ["docx"],
     fidelity: { pdf: undefined, docx: "experimental" },
     binary: true,
@@ -138,7 +154,8 @@ export const UNAVAILABLE_PATHWAYS: { from: string; to: string; reason: string }[
   { from: "Excel", to: "Word", reason: "A spreadsheet has no single correct document form (which sheet, which range, how wide). Convert to PDF, or export the cells you need as CSV." },
   { from: "PowerPoint", to: "PDF", reason: "Faithful slide rendering needs layout inheritance, charts, SmartArt, embedded fonts and effects that cannot be reproduced locally. A text-only outline would be misleading, so no half measure is offered." },
   { from: "PowerPoint", to: "Word", reason: "Slides have no faithful document equivalent." },
-  { from: "EPUB", to: "PDF / Word", reason: "Not investigated: reflowable content with embedded styling needs a layout engine that is out of scope for this release." },
+  { from: "Protected (DRM) EPUB", to: "PDF / Word", reason: "Books with copy protection are refused. FileForge never removes protection; use a copy you are allowed to open." },
+  { from: "MOBI / AZW", to: "PDF / Word", reason: "Only the open EPUB format is read. Convert other e-book formats to EPUB first." },
 ];
 
 export interface ProcessingLimits {
@@ -147,11 +164,15 @@ export interface ProcessingLimits {
   csvMaxCols: number;
   htmlMaxNodes: number;
   imageMaxMegapixels: number;
+  /** Largest input accepted in this mode, whatever the format allows (low-memory devices stay at 30 MB). */
+  maxFileBytes: number;
+  /** Longest document (estimated pages) that is converted; larger inputs are refused with a clear message instead of running out of memory. */
+  docMaxPages: number;
 }
 
 export const PROCESSING_LIMITS: Record<Processing, ProcessingLimits> = {
-  balanced: { pdfMaxPages: 300, csvMaxRows: 20000, csvMaxCols: 40, htmlMaxNodes: 100000, imageMaxMegapixels: 25 },
-  conservative: { pdfMaxPages: 100, csvMaxRows: 5000, csvMaxCols: 30, htmlMaxNodes: 30000, imageMaxMegapixels: 12 },
+  balanced: { pdfMaxPages: 1000, csvMaxRows: 20000, csvMaxCols: 40, htmlMaxNodes: 100000, imageMaxMegapixels: 25, maxFileBytes: 100 * MB, docMaxPages: 3000 },
+  conservative: { pdfMaxPages: 300, csvMaxRows: 5000, csvMaxCols: 30, htmlMaxNodes: 30000, imageMaxMegapixels: 12, maxFileBytes: 30 * MB, docMaxPages: 1000 },
 };
 
 export const ACCEPT_ATTR = SOURCE_FORMATS.flatMap((f) => f.extensions.map((e) => `.${e}`)).join(",");

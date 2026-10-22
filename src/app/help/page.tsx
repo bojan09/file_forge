@@ -5,7 +5,7 @@ import { PageShell, Section } from "@/components/PageShell";
 export const metadata: Metadata = { title: "Help" };
 
 const FAQ: { q: string; a: string }[] = [
-  { q: "My file was rejected", a: "Check the extension (TXT, MD, HTML, CSV, JPG, PNG, WebP, and the experimental DOCX, XLSX and PDF) and the size limit for that type on the Formats page. Renaming a file doesn't change its content: a PNG named .jpg is refused." },
+  { q: "My file was rejected", a: "Check the extension (TXT, MD, HTML, CSV, JPG, PNG, WebP, and the experimental DOCX, XLSX, PDF and EPUB) and the size limit for that type on the Formats page. Renaming a file doesn't change its content: a PNG named .jpg is refused." },
   { q: "The PDF shows question marks", a: "The PDF font covers Latin, Cyrillic and Greek. Characters from other scripts are replaced by “?”. Convert to DOCX instead; it keeps all characters." },
   { q: "The HTML result looks different from the web page", a: "HTML conversion is approximate. Styles, scripts, forms, media and remote images are ignored, and layouts are flattened into reading order. Save simple, document-style HTML for best results." },
   { q: "My CSV table is cut off or tiny", a: "Wide tables shrink their text to fit. Use landscape orientation, narrower margins, or DOCX for very wide data." },
@@ -20,6 +20,7 @@ const FAQ: { q: string; a: string }[] = [
   { q: "Offline mode seems stuck or out of date", a: "Open Settings and choose Remove offline copy, then reload the page while online to download it again. This only removes the app's own files; FileForge never stores your documents." },
   { q: "What can PDF Tools do?", a: "Merge several PDFs, split by page ranges, every N pages or every page, reorder, rotate, delete or extract pages with thumbnails, edit title/author/subject/keywords, and an experimental lossless compression. Everything runs on your device. Password-protected PDFs are refused. Merging and reordering keep the original page content untouched; form fields, bookmarks and tags may not carry over to a merged or extracted file." },
   { q: "Compress didn't make my PDF smaller", a: "FileForge only repacks the file structure and never re-encodes images or fonts, so scanned and photo-heavy PDFs usually stay the same size. When no smaller file can be made you get your original back with a message." },
+  { q: "How well do EPUB books convert?", a: "Chapters are read in book order and rebuilt from headings, paragraphs, lists, tables and JPEG/PNG pictures, each chapter on a new page. The book's own fonts, colors and layout are not reproduced, and GIF/SVG pictures are left out (the notes say how many). Copy-protected (DRM) books are refused. MOBI and AZW files are not supported; convert them to EPUB first. Very long books above the page limit must be split." },
   { q: "Are my preferences saved?", a: "Only non-sensitive settings (theme, defaults) are stored in your browser's local storage. You can clear them in Settings." },
 ];
 

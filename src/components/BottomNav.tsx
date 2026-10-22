@@ -4,11 +4,13 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { GearIcon, HelpIcon, HomeIcon, LayersIcon, ScissorsIcon } from "./icons";
 import { NAV_ITEMS, isActive } from "./nav";
+import { useGoHome } from "./useGoHome";
 
 const ICONS = [HomeIcon, ScissorsIcon, LayersIcon, GearIcon, HelpIcon];
 
 export function BottomNav() {
   const pathname = usePathname() ?? "/";
+  const goHome = useGoHome(pathname);
   return (
     <nav aria-label="Primary mobile" className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-surface/95 backdrop-blur-md md:hidden" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
       <ul className="mx-auto grid max-w-md grid-cols-5">
@@ -20,6 +22,7 @@ export function BottomNav() {
               <Link
                 href={item.href}
                 aria-current={active ? "page" : undefined}
+                onClick={item.href === "/" ? goHome : undefined}
                 className={`flex min-h-14 flex-col items-center justify-center gap-0.5 text-[0.7rem] font-semibold transition-colors ${active ? "text-accent-text" : "text-muted hover:text-fg"}`}
               >
                 <Icon size={22} />

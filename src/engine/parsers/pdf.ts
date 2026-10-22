@@ -264,7 +264,7 @@ export async function parsePdf(bytes: Uint8Array, processing: Processing, signal
     }
     const n = doc.numPages;
     if (n > limits.pdfMaxPages) {
-      throw new FileForgeError("pdf-too-long", `This PDF has ${n.toLocaleString()} pages, above the ${limits.pdfMaxPages}-page limit${processing === "conservative" ? " for conservative mode (balanced allows 300)" : ""}. Split it and convert the parts.`);
+      throw new FileForgeError("pdf-too-long", `This PDF has ${n.toLocaleString()} pages, above the ${limits.pdfMaxPages.toLocaleString()}-page limit${processing === "conservative" ? ` for conservative mode (balanced allows ${PROCESSING_LIMITS.balanced.pdfMaxPages.toLocaleString()})` : ""}. Split it and convert the parts.`);
     }
 
     const pages: PageInfo[] = [];

@@ -159,9 +159,9 @@ test.describe("PDF tools", () => {
   test("a file above the size limit is refused before it is read", async ({ page }) => {
     const big = path.join(mkdtempSync(path.join(tmpdir(), "huge-")), "huge.pdf");
     writeFileSync(big, "%PDF-1.4\n");
-    truncateSync(big, 61 * 1024 * 1024); // sparse file
+    truncateSync(big, 101 * 1024 * 1024); // sparse file
     await page.getByTestId("file-input").setInputFiles(big);
-    await expect(page.getByTestId("pdf-notice")).toContainText("larger than 60 MB");
+    await expect(page.getByTestId("pdf-notice")).toContainText("larger than 100 MB");
     await expect(page.getByTestId("pdf-file-row")).toHaveCount(0);
   });
 

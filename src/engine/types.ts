@@ -72,7 +72,7 @@ export interface NormalizedDoc {
   imageCount?: number;
 }
 
-export type SourceKind = "txt" | "md" | "html" | "csv" | "image" | "docx" | "xlsx" | "pdf";
+export type SourceKind = "txt" | "md" | "html" | "csv" | "image" | "docx" | "xlsx" | "pdf" | "epub";
 export type OutputFormat = "pdf" | "docx";
 /** high = Supported; approximate = content kept, layout differs; experimental = simple documents only, review the output. */
 export type Fidelity = "high" | "approximate" | "experimental";

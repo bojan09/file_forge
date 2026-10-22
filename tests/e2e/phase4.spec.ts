@@ -27,17 +27,17 @@ test.describe("capability matrix and honesty", () => {
     }
     await expect(page.getByText("What the labels mean")).toBeVisible();
     const rows = page.getByTestId("unavailable-row");
-    await expect(rows).toHaveCount(5);
+    await expect(rows).toHaveCount(6);
     await expect(rows.nth(0)).toContainText("Scanned PDF to Word");
     await expect(rows.nth(0)).toContainText("OCR");
     await expect(page.locator("body")).toContainText("PowerPoint to PDF");
     // No clickable control offers an unavailable conversion.
-    await expect(page.getByRole("button", { name: /PowerPoint|EPUB/i })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: /PowerPoint/i })).toHaveCount(0);
   });
 
   test("home screen lists the new conversions as experimental", async ({ page }) => {
     await page.goto("/");
-    for (const t of ["Word to PDF (experimental)", "Excel to PDF (experimental)", "PDF to Word (experimental)"]) await expect(page.getByRole("button", { name: t })).toBeVisible();
+    for (const t of ["Word to PDF (experimental)", "Excel to PDF (experimental)", "PDF to Word (experimental)", "EPUB to PDF / Word (experimental)"]) await expect(page.getByRole("button", { name: t })).toBeVisible();
   });
 
   test("unsupported Office formats are refused with a reason", async ({ page }) => {
