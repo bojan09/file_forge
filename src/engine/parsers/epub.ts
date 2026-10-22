@@ -21,6 +21,31 @@ function toBase64(bytes: Uint8Array): string {
   return btoa(s);
 }
 
+const safeDecodeUri = (s: string): string => {
+  try {
+    return decodeURIComponent(s);
+  } catch {
+    return s;
+  }
+};
+
+/** Decodes a chapter honoring a BOM or the XML declaration's encoding (most books are UTF-8, a few are not). */
+function decodeChapter(bytes: Uint8Array): string {
+  let label = "utf-8";
+  if (bytes[0] === 0xff && bytes[1] === 0xfe) label = "utf-16le";
+  else if (bytes[0] === 0xfe && bytes[1] === 0xff) label = "utf-16be";
+  else {
+    const head = new TextDecoder("latin1").decode(bytes.subarray(0, 200));
+    const declared = /<\?xml[^>]*encoding\s*=\s*["']([\w.:-]+)["']/i.exec(head)?.[1];
+    if (declared && !/^utf-?8$/i.test(declared)) label = declared;
+  }
+  try {
+    return new TextDecoder(label).decode(bytes);
+  } catch {
+    return new TextDecoder("utf-8").decode(bytes);
+  }
+}
+
 function stripBom(s: string): string {
   return s.charCodeAt(0) === 0xfeff ? s.slice(1) : s;
 }
@@ -60,7 +85,7 @@ interface ImageState {
 function inlineImages(html: string, chapterPath: string, zip: OfficeZip, state: ImageState): string {
   const inline = (href: string | undefined): string | undefined => {
     if (!href || /^(data:|https?:|\/\/)/i.test(href.trim())) return undefined;
-    const path = resolveTarget(chapterPath, decodeURIComponent(href.split("#")[0]!.split("?")[0]!));
+    const path = resolveTarget(chapterPath, safeDecodeUri(href.split("#")[0]!.split("?")[0]!));
     const ext = path.split(".").pop()?.toLowerCase() ?? "";
     const bytes = zip.bytes(path);
     if (!bytes) return undefined;
@@ -89,6 +114,18 @@ function inlineImages(html: string, chapterPath: string, zip: OfficeZip, state: 
     });
 }
 
+/** A table-of-contents page: marked as one, or made up (almost) only of links. Chapters have prose around their links. */
+function isNavigationPage(raw: string): boolean {
+  if (/<nav\b[^>]*(?:epub:type|role)\s*=\s*["'][^"']*toc/i.test(raw)) return true;
+  const body = /<body\b[^>]*>([\s\S]*)<\/body>/i.exec(raw)?.[1] ?? raw;
+  const text = (h: string) => h.replace(/<[^>]+>/g, "").replace(/\s+/g, "");
+  const links = [...body.matchAll(/<a\b[^>]*>([\s\S]*?)<\/a>/gi)];
+  if (links.length < 5) return false;
+  const total = text(body).length;
+  const inLinks = links.reduce((n, m) => n + text(m[1]!).length, 0);
+  return total > 0 && inLinks / total > 0.8;
+}
+
 export function parseEpub(bytes: Uint8Array, processing: Processing): ParsedBinary {
   const limits = PROCESSING_LIMITS[processing];
   // Fonts and media are never read: only markup, metadata and the two raster image types the converter can embed.
@@ -107,18 +144,26 @@ export function parseEpub(bytes: Uint8Array, processing: Processing): ParsedBina
   }
 
   const opf = stripBom(zip.text(opfPath)!);
-  const manifest = new Map<string, { href: string; type: string }>();
+  const manifest = new Map<string, { href: string; type: string; props: string }>();
   for (const m of opf.matchAll(/<item\b[^>]*>/gi)) {
     const id = attr(m[0], "id");
     const href = attr(m[0], "href");
-    if (id && href) manifest.set(id, { href: decodeXml(href), type: attr(m[0], "media-type") ?? "" });
+    if (id && href) manifest.set(id, { href: decodeXml(href), type: attr(m[0], "media-type") ?? "", props: attr(m[0], "properties") ?? "" });
   }
   const spine: string[] = [];
+  let navSkipped = 0;
   for (const m of opf.matchAll(/<itemref\b[^>]*>/gi)) {
     const idref = attr(m[0], "idref");
     const item = idref ? manifest.get(idref) : undefined;
-    if (item && /x?html/i.test(item.type + item.href)) spine.push(resolveTarget(opfPath, decodeURIComponent(item.href)));
+    if (!item || !/x?html/i.test(item.type + item.href)) continue;
+    // The navigation document is the book's table of contents: links only, no content of its own.
+    if (/\bnav\b/.test(item.props)) {
+      navSkipped++;
+      continue;
+    }
+    spine.push(resolveTarget(opfPath, safeDecodeUri(item.href)));
   }
+  const fixedLayout = /rendition:layout[^<]*>\s*pre-paginated/i.test(opf);
   if (!spine.length) throw new FileForgeError("epub-invalid", "This EPUB lists no readable chapters.");
   if (spine.length > MAX_CHAPTERS) throw new FileForgeError("epub-too-large", `This EPUB has ${spine.length.toLocaleString()} content files, above the ${MAX_CHAPTERS.toLocaleString()} limit.`);
 
@@ -139,9 +184,15 @@ export function parseEpub(bytes: Uint8Array, processing: Processing): ParsedBina
   let missing = 0;
   let empty = 0;
   for (const path of spine) {
-    const raw = zip.text(path);
+    const rawBytes = zip.bytes(path);
+    const raw = rawBytes ? decodeChapter(rawBytes) : undefined;
     if (raw === undefined) {
       missing++;
+      continue;
+    }
+    // EPUB 2 books list their navigation page in the spine like any chapter: a <nav>, or a page that is almost only links.
+    if (isNavigationPage(raw)) {
+      navSkipped++;
       continue;
     }
     const html = inlineImages(normalizeXhtml(raw), path, zip, imageState);
@@ -173,7 +224,8 @@ export function parseEpub(bytes: Uint8Array, processing: Processing): ParsedBina
   if (imageState.unsupported) out.push(warn("images-format", `${imageState.unsupported.toLocaleString()} image${imageState.unsupported === 1 ? "" : "s"} in formats other than JPEG or PNG (such as GIF or SVG) were left out.`));
   if (missing) out.push(warn("epub-missing", `${missing.toLocaleString()} listed chapter${missing === 1 ? " is" : "s are"} missing from the file and were skipped.`));
   if (empty) out.push(warn("epub-empty", `${empty.toLocaleString()} page${empty === 1 ? "" : "s"} without text (covers, image-only pages) were left out.`, "info"));
-  if (zip.allNames.some((n) => /(^|\/)nav\.x?html$|toc\.ncx$/i.test(n))) out.push(warn("epub-toc", "The book's table of contents page is included as text; its links are not clickable.", "info"));
+  if (navSkipped) out.push(warn("epub-toc", "The book's table of contents page was left out (it only holds links).", "info"));
+  if (fixedLayout) out.push(warn("epub-fixed-layout", "This book uses a fixed page layout (such as a comic or illustrated book). Only its text is converted, and the pages may look very different from the original."));
 
   const doc = finalizeDoc(blocks, out, title, meta);
   return { doc, suggested: { style: undefined } };

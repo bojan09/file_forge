@@ -8,7 +8,7 @@ Phase 2 adds batch conversion (queue, pause/resume/cancel/retry, shared and per-
 
 **Advanced formats (Phase 4, experimental)**
 - Word to PDF, Excel to PDF and text PDF to Word, each clearly labeled Experimental, each listing what it could not carry over
-- EPUB to PDF and Word (chapters in book order, pictures included; DRM-protected books refused)
+- EPUB to PDF and Word, labeled Supported: chapters in book order, headings, lists, tables, links and JPEG/PNG pictures; DRM-protected books refused. Verified against books written by pandoc (EPUB 2 and 3) and LibreOffice: word recall 1.00, reading order ≥ 0.95, every heading, list, table and picture present
 - Files up to 100 MB in every format; very long documents are refused above a page limit (about 3,000 pages, 1,000 in conservative mode) instead of running out of memory. Measured in a browser: a 600-page EPUB converts to PDF in about 9 s, a 2,500-page one in about 34 s
 - Not offered, with reasons: scanned PDF OCR, Excel to Word, PowerPoint, MOBI/AZW, DRM-protected EPUB (see the Formats page)
 

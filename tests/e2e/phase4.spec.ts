@@ -37,7 +37,7 @@ test.describe("capability matrix and honesty", () => {
 
   test("home screen lists the new conversions as experimental", async ({ page }) => {
     await page.goto("/");
-    for (const t of ["Word to PDF (experimental)", "Excel to PDF (experimental)", "PDF to Word (experimental)", "EPUB to PDF / Word (experimental)"]) await expect(page.getByRole("button", { name: t })).toBeVisible();
+    for (const t of ["Word to PDF (experimental)", "Excel to PDF (experimental)", "PDF to Word (experimental)", "EPUB to PDF / Word"]) await expect(page.getByRole("button", { name: t })).toBeVisible();
   });
 
   test("unsupported Office formats are refused with a reason", async ({ page }) => {

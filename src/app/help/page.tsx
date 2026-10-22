@@ -5,7 +5,7 @@ import { PageShell, Section } from "@/components/PageShell";
 export const metadata: Metadata = { title: "Help" };
 
 const FAQ: { q: string; a: string }[] = [
-  { q: "My file was rejected", a: "Check the extension (TXT, MD, HTML, CSV, JPG, PNG, WebP, and the experimental DOCX, XLSX, PDF and EPUB) and the size limit for that type on the Formats page. Renaming a file doesn't change its content: a PNG named .jpg is refused." },
+  { q: "My file was rejected", a: "Check the extension (TXT, MD, HTML, CSV, JPG, PNG, WebP, EPUB, and the experimental DOCX, XLSX and PDF) and the size limit for that type on the Formats page. Renaming a file doesn't change its content: a PNG named .jpg is refused." },
   { q: "The PDF shows question marks", a: "The PDF font covers Latin, Cyrillic and Greek. Characters from other scripts are replaced by “?”. Convert to DOCX instead; it keeps all characters." },
   { q: "The HTML result looks different from the web page", a: "HTML conversion is approximate. Styles, scripts, forms, media and remote images are ignored, and layouts are flattened into reading order. Save simple, document-style HTML for best results." },
   { q: "My CSV table is cut off or tiny", a: "Wide tables shrink their text to fit. Use landscape orientation, narrower margins, or DOCX for very wide data." },

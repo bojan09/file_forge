@@ -23,16 +23,20 @@ const failure = async (n: string) => {
 };
 
 describe("EPUB", () => {
-  it.each(["epub-simple", "epub-long", "epub-fontobf"])("%s: every word of the source chapters reaches the PDF, in order", async (n) => {
+  it.each(["epub-simple", "epub-long", "epub-fontobf", "epub-pandoc3", "epub-pandoc2", "epub-libreoffice"])("%s: every word of the source chapters reaches the PDF, in order", async (n) => {
     const i = await insp(`${n}.epub`);
     const { out, bytes } = await convert(i, "pdf");
-    const ref = words(corpusText(`${n}.ref.txt`));
+    const text = corpusText(`${n}.ref.txt`);
+    const ref = words(text);
     const got = await pdfWords(bytes);
     expect(bagRecall(ref, got.words)).toBeGreaterThanOrEqual(0.99);
-    expect(orderedRecall(ref, got.words)).toBeGreaterThanOrEqual(0.95);
+    // pandoc's plain text collects footnotes at the end of the book; an EPUB shows them at the end of each chapter. They count
+    // for recall above and are left out of the order check, where only the running text is compared.
+    const running = words(text.split("\n").filter((l) => !/^\[\d+\] Footnote text/.test(l)).join("\n"));
+    expect(orderedRecall(running, got.words)).toBeGreaterThanOrEqual(0.95);
     // jsdom has no canvas, so a PNG with transparency falls back to alt text here; real browsers flatten it (covered in the browser tests).
     expect(out.checks.filter((c) => !c.passed && !/transparency/.test(c.label)).map((c) => c.label)).toEqual([]);
-    expect(out.fidelity).toBe("experimental");
+    expect(out.fidelity).toBe("high");
     if (n === "epub-long") expect(await pdfPageCount(bytes)).toBeGreaterThan(100);
   }, 180000);
 
@@ -58,6 +62,22 @@ describe("EPUB", () => {
     expect(j.tables.length).toBe(1);
     const { xml } = await docxXml(bytes);
     expect(xml).toContain("Македонски");
+  });
+
+  it("pandoc books keep their structure: every heading, list, table and picture the Markdown source has", async () => {
+    for (const n of ["epub-pandoc3", "epub-pandoc2"]) {
+      const i = await insp(`${n}.epub`);
+      // Source: 24 chapters × (1 chapter heading + 1 section heading); 24 × (bullet + numbered list); tables in every 5th chapter; two figures plus the cover.
+      expect(count(i.doc!.blocks, "heading"), n).toBeGreaterThanOrEqual(48);
+      expect(count(i.doc!.blocks, "list"), n).toBeGreaterThanOrEqual(48);
+      expect(count(i.doc!.blocks, "table"), n).toBe(4);
+      expect(i.doc!.imageCount, n).toBe(3);
+      expect(i.doc!.title, n).toBe("The Corpus Almanac");
+      expect(i.doc!.meta?.author, n).toBe("Corpus Author");
+      expect(JSON.stringify(i.doc!.blocks)).toContain("Македонски");
+      expect(JSON.stringify(i.doc!.blocks)).toContain("code block line 2");
+      expect(i.warnings.map((w) => w.code)).toContain("epub-toc");
+    }
   });
 
   it("reports what it left out, instead of dropping it silently", async () => {

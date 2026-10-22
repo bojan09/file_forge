@@ -24,7 +24,7 @@ describe("registry", () => {
     expect(getFormat("docx").outputs).toEqual(["pdf"]);
     expect(getFormat("xlsx").outputs).toEqual(["pdf"]);
     expect(getFormat("pdf").outputs).toEqual(["docx"]);
-    getFormat("epub").outputs.forEach((o) => expect(getFormat("epub").fidelity[o]).toBe("experimental"));
+    getFormat("epub").outputs.forEach((o) => expect(getFormat("epub").fidelity[o]).toBe("high"));
     for (const k of ["docx", "xlsx", "pdf"] as const) expect(Object.values(getFormat(k).fidelity)).toContain("experimental");
   });
   it("the picker accepts the new extensions, and unavailable pathways are documented with reasons", () => {

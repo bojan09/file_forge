@@ -3,7 +3,7 @@
 ## EPUB, larger files, home button (unreleased)
 
 ### Added
-- EPUB to PDF and Word (experimental): chapters in spine order with page breaks, headings, lists, tables, links and JPEG/PNG pictures (including SVG-wrapped covers); title and author from the OPF; DRM-protected books refused; GIF/SVG pictures reported as left out.
+- EPUB to PDF and Word, labeled **Supported**: chapters in spine order with page breaks, headings, lists, tables, links and JPEG/PNG pictures (including SVG-wrapped covers); title and author from the OPF; DRM-protected books refused; GIF/SVG pictures reported as left out. Navigation pages are left out; XHTML in other encodings and fixed-layout books are handled or reported. Evidence: books from pandoc (EPUB 2 and 3) and LibreOffice reach word recall 1.00 and reading order ≥ 0.95, with every heading, list, table and picture present.
 - Page guards: documents above about 3,000 pages (1,000 in conservative mode) are refused with a clear message before they can exhaust memory; PDF page limit raised from 300/100 to 1,000/300.
 
 ### Changed

@@ -121,9 +121,9 @@ export const SOURCE_FORMATS: SourceFormat[] = [
     mimeTypes: ["application/epub+zip"],
     maxBytes: 100 * MB,
     outputs: ["pdf", "docx"],
-    fidelity: { pdf: "experimental", docx: "experimental" },
+    fidelity: { pdf: "high", docx: "high" },
     binary: true,
-    summary: "Experimental. Chapters are read in book order and rebuilt from their headings, paragraphs, lists, tables and JPEG/PNG pictures; each chapter starts on a new page.",
+    summary: "Chapters are read in book order and rebuilt from their headings, paragraphs, lists, tables and JPEG/PNG pictures; each chapter starts on a new page.",
     notes: [
       "The book's own fonts, colors, spacing, page layout and CSS are not reproduced. Title and author come from the book's metadata.",
       "Copy-protected (DRM) books are refused; FileForge never removes protection. GIF and SVG pictures, audio and video are left out and reported.",

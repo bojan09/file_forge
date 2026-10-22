@@ -12,7 +12,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: { default: "FileForge – Convert your files to PDF or Word, privately", template: "%s · FileForge" },
-  description: "Free browser-only converter for TXT, Markdown, HTML, CSV and images to PDF or editable DOCX, plus experimental Word, Excel, PDF and EPUB conversions. Your files are processed on your device and never uploaded.",
+  description: "Free browser-only converter for TXT, Markdown, HTML, CSV and images to PDF or editable DOCX, EPUB books, plus experimental Word, Excel and PDF conversions. Your files are processed on your device and never uploaded.",
   manifest: "/manifest.webmanifest",
   icons: { icon: [{ url: "/icon.svg", type: "image/svg+xml" }, { url: "/icons/favicon-32.png", sizes: "32x32", type: "image/png" }], apple: "/icons/apple-touch-icon.png" },
   appleWebApp: { capable: true, title: "FileForge", statusBarStyle: "black-translucent" },

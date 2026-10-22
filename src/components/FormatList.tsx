@@ -13,7 +13,7 @@ const ROWS: { id: SourceFormat["id"]; label: string; icon: string }[] = [
   { id: "csv", label: "CSV to PDF / Word", icon: "csv" },
   { id: "docx", label: "Word to PDF (experimental)", icon: "docx" },
   { id: "xlsx", label: "Excel to PDF (experimental)", icon: "xlsx" },
-  { id: "epub", label: "EPUB to PDF / Word (experimental)", icon: "epub" },
+  { id: "epub", label: "EPUB to PDF / Word", icon: "epub" },
   { id: "pdf", label: "PDF to Word (experimental)", icon: "pdf" },
 ];
 

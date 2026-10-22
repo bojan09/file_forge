@@ -86,7 +86,7 @@ export function UploadZone({ onFiles, inputId, accept, mode = "convert" }: { onF
           </span>
         </span>
         <span className="mt-2 max-w-xs text-xs leading-relaxed text-muted">
-          {mode === "merge" ? "JPG, PNG and WebP images. Up to 15 MB each." : mode === "pdf" ? "PDF files, up to 100 MB each. Password-protected PDFs are not supported." : "Supports TXT, Markdown, HTML, CSV, JPG, PNG, WebP, and experimental Word, Excel, PDF and EPUB. Files up to 100 MB. Select several files to convert them as a batch. Select several files to convert them as a batch."}
+          {mode === "merge" ? "JPG, PNG and WebP images. Up to 15 MB each." : mode === "pdf" ? "PDF files, up to 100 MB each. Password-protected PDFs are not supported." : "Supports TXT, Markdown, HTML, CSV, JPG, PNG, WebP, EPUB, and experimental Word, Excel and PDF. Files up to 100 MB. Select several files to convert them as a batch."}
         </span>
       </label>
     </div>

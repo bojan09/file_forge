@@ -96,7 +96,7 @@ def make_docx():
     # landscape last section
     new = d.add_section(); new.orientation = WD_ORIENT.LANDSCAPE; new.page_width, new.page_height = new.page_height, new.page_width
     d.add_paragraph("Landscape section text. " + LOREM)
-    d.save(OUT / "docx-complex.docx")
+    d.save(OUT / "docx-long.docx")
 
     # long (about 40 pages)
     d = docx.Document(); d.core_properties.title = "Long Document"
@@ -257,7 +257,7 @@ def make_pdf():
     (OUT / "pdf-notpdf.pdf").write_bytes(b"not a pdf at all\n" * 40)
 
     # LibreOffice-produced PDF (realistic export of the complex Word file)
-    soffice(["--convert-to", "pdf", "--outdir", str(OUT), str(OUT / "docx-complex.docx")], str(TMP))
+    soffice(["--convert-to", "pdf", "--outdir", str(OUT), str(OUT / "docx-long.docx")], str(TMP))
     shutil.move(OUT / "docx-complex.pdf", OUT / "pdf-from-libreoffice.pdf")
 
 # ---------------------------------------------------------------- PPTX (feasibility only; never converted by the app)
@@ -346,6 +346,45 @@ def make_epub():
                 texts.append(" ".join(" ".join(tree.body.itertext()).split()))
         (OUT / f"{name}.ref.txt").write_text("\n".join(texts), encoding="utf-8")
 
+
+def make_epub_tools():
+    """EPUBs written by independent tools (pandoc EPUB 3 and 2; LibreOffice when it can export EPUB), from a Markdown source whose
+    plain-text rendering by pandoc is the reference. Chapters, footnotes, tables, pictures, quotes, code and non-Latin text."""
+    work = TMP / "epubsrc"
+    shutil.rmtree(work, ignore_errors=True)
+    work.mkdir(parents=True)
+    shutil.copy(FX / "image.png", work / "figure1.png")
+    shutil.copy(FX / "photo.jpg", work / "figure2.jpg")
+    shutil.copy(FX / "opaque.png", work / "cover.png")
+    (work / "style.css").write_text("body{font-family:Georgia,serif;margin:5%} h1{color:#900;text-align:center} p{text-indent:1.5em} .small{font-variant:small-caps}")
+    parts = ["---\ntitle: The Corpus Almanac\nauthor: Corpus Author\nlang: en\n---\n"]
+    for c in range(1, 25):
+        parts.append(f"# Chapter {c}: The {['Harbour','Orchard','Foundry','Library','Station','Market'][c % 6]}\n")
+        for p_ in range(6):
+            parts.append(f"Paragraph {p_} of chapter {c} reads on. " + LOREM * 2 + (f"A note.[^n{c}{p_}]" if p_ == 2 else "") + "\n")
+        parts.append(f"## Section {c}.1\n\n- first point of {c}\n- second point with *emphasis* and **strong**\n  - nested item\n\n1. one\n2. two\n")
+        if c % 5 == 0:
+            parts.append("| Name | Value | Note |\n|------|-------|------|\n| Alpha | 1 | first |\n| Beta | 2 | second |\n| Gamma | 3 | third |\n")
+        if c == 3: parts.append("![First figure](figure1.png)\n")
+        if c == 7: parts.append("![Second figure](figure2.jpg)\n")
+        if c == 9: parts.append("> A quotation that spans a line\n> and continues here.\n\nМакедонски текст: здраво свету, ова е поглавје. Ελληνικά: καλημέρα κόσμε.\n")
+        if c == 11: parts.append("```\ncode block line 1\ncode block line 2\n```\n")
+        parts.append(f"[^n{c}2]: Footnote text for chapter {c}.\n")
+    md = work / "book.md"
+    md.write_text("\n".join(parts), encoding="utf-8")
+    for name, extra in [("epub-pandoc3", ["-t", "epub3"]), ("epub-pandoc2", ["-t", "epub2"])]:
+        subprocess.run(["pandoc", str(md), "-o", str(OUT / f"{name}.epub"), "--toc", "--split-level=1", "--epub-cover-image=cover.png", "--css=style.css", *extra], cwd=work, check=True)
+    ref = subprocess.run(["pandoc", str(md), "-t", "plain", "--wrap=none"], capture_output=True, text=True, cwd=work, check=True).stdout
+    for name in ["epub-pandoc3", "epub-pandoc2"]:
+        (OUT / f"{name}.ref.txt").write_text(ref, encoding="utf-8")
+    # LibreOffice (newer versions export EPUB): a real word-processor producer.
+    r = subprocess.run(["soffice", "--headless", "--convert-to", "epub", "--outdir", str(TMP), str(OUT / "docx-long.docx")], cwd=str(TMP), capture_output=True, text=True)
+    if (TMP / "docx-long.epub").exists():
+        shutil.copy(TMP / "docx-long.epub", OUT / "epub-libreoffice.epub")
+        (OUT / "epub-libreoffice.ref.txt").write_text((OUT / "docx-long.ref.txt").read_text(encoding="utf-8"), encoding="utf-8")
+    else:
+        print("LibreOffice EPUB export unavailable:", r.stderr[-200:])
+
 def references():
     import docx, openpyxl
     from docx.document import Document as _D
@@ -387,7 +426,7 @@ def references():
 
 if __name__ == "__main__":
     if len(sys.argv) > 1 and sys.argv[1] == "epub":
-        make_epub(); shutil.rmtree(TMP, ignore_errors=True); sys.exit()
+        make_epub(); make_epub_tools(); shutil.rmtree(TMP, ignore_errors=True); sys.exit()
     make_docx(); make_xlsx(); make_pdf(); make_pptx(); references()
     shutil.rmtree(TMP, ignore_errors=True)
     for p in sorted(OUT.iterdir()): print(f"{p.stat().st_size:>10}  {p.name}")
